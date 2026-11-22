@@ -1,17 +1,22 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, Volume2, VolumeX, X } from 'lucide-react';
 import { motion, useScroll, useSpring } from 'motion/react';
 import { CHANNEL_PROFILE } from '../data/channel';
 
+interface NavbarProps {
+  isAudioMuted: boolean;
+  onToggleMasterMute: () => void;
+}
+
 const NAV_LINKS = [
   { label: 'Cinema', href: '#cinema' },
-  { label: 'Shorts', href: '#shorts' },
+  { label: 'Analytics', href: '#analytics' },
+  { label: '3D Core', href: '#sonic-stage' },
   { label: 'Pillars', href: '#pillars' },
   { label: 'Concierge', href: '#concierge' },
-  { label: 'Connect', href: '#connect' },
 ];
 
-export default function Navbar() {
+export default function Navbar({ isAudioMuted, onToggleMasterMute }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -21,12 +26,12 @@ export default function Navbar() {
   });
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#000000]/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#03050a]/90 backdrop-blur-md">
       {/* Scroll Laser Progress Gauge */}
       <motion.div
         aria-hidden="true"
         style={{ scaleX, transformOrigin: 'left' }}
-        className="h-[2px] w-full bg-gradient-to-r from-[#00F0FF] via-[#FFB800] to-[#FF7A00]"
+        className="h-[2px] w-full bg-gradient-to-r from-[#00F0FF] via-[#FFB800] to-[#FF7B00]"
       />
 
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
@@ -54,13 +59,28 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* Zone 3: 1 primary action */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 3: Master Audio Mute Toggle + Subscribe CTA */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={onToggleMasterMute}
+            aria-label={isAudioMuted ? 'Unmute background audio' : 'Mute background audio'}
+            aria-pressed={!isAudioMuted}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 font-mono text-xs font-medium text-slate-200 whitespace-nowrap shrink-0 transition-colors hover:border-[#00F0FF]/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+          >
+            {isAudioMuted ? (
+              <VolumeX className="h-3.5 w-3.5 text-[#FF7B00]" />
+            ) : (
+              <Volume2 className="h-3.5 w-3.5 text-[#00F0FF]" />
+            )}
+            <span className="hidden sm:inline">{isAudioMuted ? 'Muted' : 'Audio'}</span>
+          </button>
+
           <a
             href={CHANNEL_PROFILE.urls.subscribe}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center justify-center rounded-lg bg-[#FF7A00] px-4 py-2 text-xs font-semibold text-[#04071A] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FFB800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+            className="hidden sm:inline-flex items-center justify-center rounded-lg bg-[#FF7B00] px-4 py-2 text-xs font-semibold text-[#04071A] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FFB800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
           >
             Subscribe
           </a>
@@ -96,7 +116,7 @@ export default function Navbar() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setMobileOpen(false)}
-              className="mt-2 flex min-h-[44px] items-center justify-center rounded-lg bg-[#FF7A00] px-4 py-2.5 text-sm font-semibold text-[#04071A] transition-colors hover:bg-[#FFB800]"
+              className="mt-2 flex min-h-[44px] items-center justify-center rounded-lg bg-[#FF7B00] px-4 py-2.5 text-sm font-semibold text-[#04071A] transition-colors hover:bg-[#FFB800]"
             >
               Subscribe on YouTube
             </a>

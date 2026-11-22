@@ -32,6 +32,14 @@ export interface ChannelPillar {
   ctaHref: string;
 }
 
+export interface DailyEngagementPoint {
+  day: string;
+  dateLabel: string;
+  views: number;
+  watchTimeHours: number;
+  milestone?: string;
+}
+
 export const CHANNEL_PROFILE = {
   name: 'R4agRek0il',
   handle: '@R4agRek0il',
@@ -75,7 +83,8 @@ export const CHANNEL_METRICS = [
   },
 ] as const;
 
-export const CHANNEL_VIDEOS: ChannelVideo[] = [
+// Exact 5 latest tracks in newest-to-oldest order for the R4agRek0il Audio Deck
+export const LAST_5_TRACKS: ChannelVideo[] = [
   {
     id: 'not-dancing',
     videoId: 'SoZfGOnwQXA',
@@ -87,7 +96,7 @@ export const CHANNEL_VIDEOS: ChannelVideo[] = [
     genre: 'Electronic Pop',
     moodTags: ['Kinetic Rhythm', 'Nightlife Pulse', 'Animated Storytelling'],
     duration: '03:18',
-    releaseNote: 'Latest Featured Drop',
+    releaseNote: 'Latest Drop',
     storyNote:
       'Pairs kinetic rhythm cuts with expressive animated motion and nocturnal lighting, anchoring the flagship R4agRek0il visual style.',
     inNeonNights: true,
@@ -95,46 +104,9 @@ export const CHANNEL_VIDEOS: ChannelVideo[] = [
     waveformSeed: 14,
   },
   {
-    id: 'lost-the-count',
-    videoId: 'h20rZi9OxbM',
-    index: '02',
-    title: 'Lost the Count | Official Animated Music Video — R4agRek0il',
-    shortTitle: 'Lost the Count',
-    category: 'animated-mv',
-    categoryLabel: 'Animated MV',
-    genre: 'Synthwave Electronic',
-    moodTags: ['Breakout Release', 'Driving Bass', '970+ Views'],
-    duration: '03:42',
-    releaseNote: 'Breakout Performer',
-    storyNote:
-      'Channel breakout release fusing relentless synth momentum and gaming-paced editing with emotional vocal hooks.',
-    isBreakout: true,
-    inNeonNights: true,
-    accentTone: 'orange',
-    waveformSeed: 73,
-  },
-  {
-    id: 'wake-the-night',
-    videoId: '_8D1_KcdVDU',
-    index: '03',
-    title: 'WAKE THE NIGHT ⚡ | From Darkness to Light | Epic EDM Lyric Video',
-    shortTitle: 'Wake the Night',
-    category: 'lyric-video',
-    categoryLabel: 'Lyric Video',
-    genre: 'Epic Cinematic EDM',
-    moodTags: ['Neon Nights', 'Uplifting Drop', 'From Darkness to Light'],
-    duration: '03:54',
-    releaseNote: 'Neon Nights Anthem',
-    storyNote:
-      'High-contrast lyric choreography backed by wide cinematic pads and an explosive melodic EDM drop.',
-    inNeonNights: true,
-    accentTone: 'cyan',
-    waveformSeed: 27,
-  },
-  {
     id: 'make-it-hard-to-leave',
     videoId: 'Nrp7AcQIkWU',
-    index: '04',
+    index: '02',
     title: 'Make It Hard to Leave — R4agRek0il | Official Music Video',
     shortTitle: 'Make It Hard to Leave',
     category: 'animated-mv',
@@ -152,7 +124,7 @@ export const CHANNEL_VIDEOS: ChannelVideo[] = [
   {
     id: 'what-if-i-dont',
     videoId: 'sm_sXx6Ek2E',
-    index: '05',
+    index: '03',
     title: "What If I Don't? | Official Animated Music Video — R4agRek0il",
     shortTitle: "What If I Don't?",
     category: 'animated-mv',
@@ -166,6 +138,47 @@ export const CHANNEL_VIDEOS: ChannelVideo[] = [
     accentTone: 'dual',
     waveformSeed: 58,
   },
+  {
+    id: 'lost-the-count',
+    videoId: 'h20rZi9OxbM',
+    index: '04',
+    title: 'Lost the Count | Official Animated Music Video — R4agRek0il',
+    shortTitle: 'Lost the Count',
+    category: 'animated-mv',
+    categoryLabel: 'Animated MV',
+    genre: 'Synthwave Electronic',
+    moodTags: ['Breakout Release', 'Driving Bass', '974+ Views'],
+    duration: '03:42',
+    releaseNote: 'Breakout Performer',
+    storyNote:
+      'Channel breakout release fusing relentless synth momentum and gaming-paced editing with emotional vocal hooks.',
+    isBreakout: true,
+    inNeonNights: true,
+    accentTone: 'orange',
+    waveformSeed: 73,
+  },
+  {
+    id: 'wake-the-night',
+    videoId: '_8D1_KcdVDU',
+    index: '05',
+    title: 'WAKE THE NIGHT ⚡ | From Darkness to Light | Epic EDM Lyric Video',
+    shortTitle: 'WAKE THE NIGHT ⚡',
+    category: 'lyric-video',
+    categoryLabel: 'Lyric Video',
+    genre: 'Epic Cinematic EDM',
+    moodTags: ['Neon Nights', 'Uplifting Drop', 'From Darkness to Light'],
+    duration: '03:54',
+    releaseNote: 'Neon Nights Anthem',
+    storyNote:
+      'High-contrast lyric choreography backed by wide cinematic pads and an explosive melodic EDM drop.',
+    inNeonNights: true,
+    accentTone: 'cyan',
+    waveformSeed: 27,
+  },
+];
+
+export const CHANNEL_VIDEOS: ChannelVideo[] = [
+  ...LAST_5_TRACKS,
   {
     id: 'wake-the-night-short',
     videoId: 'QIV-N_7nPcE',
@@ -187,6 +200,40 @@ export const CHANNEL_VIDEOS: ChannelVideo[] = [
   },
 ];
 
+// 30-day YouTube engagement trends (views & watch time hours)
+export const ENGAGEMENT_30_DAYS: DailyEngagementPoint[] = [
+  { day: 'D1', dateLabel: 'Day 01', views: 68, watchTimeHours: 3.1 },
+  { day: 'D2', dateLabel: 'Day 02', views: 74, watchTimeHours: 3.4 },
+  { day: 'D3', dateLabel: 'Day 03', views: 89, watchTimeHours: 4.0 },
+  { day: 'D4', dateLabel: 'Day 04', views: 81, watchTimeHours: 3.7 },
+  { day: 'D5', dateLabel: 'Day 05', views: 96, watchTimeHours: 4.5 },
+  { day: 'D6', dateLabel: 'Day 06', views: 112, watchTimeHours: 5.2 },
+  { day: 'D7', dateLabel: 'Day 07', views: 138, watchTimeHours: 6.4, milestone: 'Wake the Night Push' },
+  { day: 'D8', dateLabel: 'Day 08', views: 124, watchTimeHours: 5.8 },
+  { day: 'D9', dateLabel: 'Day 09', views: 118, watchTimeHours: 5.4 },
+  { day: 'D10', dateLabel: 'Day 10', views: 131, watchTimeHours: 6.1 },
+  { day: 'D11', dateLabel: 'Day 11', views: 145, watchTimeHours: 6.9 },
+  { day: 'D12', dateLabel: 'Day 12', views: 162, watchTimeHours: 7.5 },
+  { day: 'D13', dateLabel: 'Day 13', views: 158, watchTimeHours: 7.2 },
+  { day: 'D14', dateLabel: 'Day 14', views: 214, watchTimeHours: 10.3, milestone: 'Lost the Count Surge' },
+  { day: 'D15', dateLabel: 'Day 15', views: 248, watchTimeHours: 11.8 },
+  { day: 'D16', dateLabel: 'Day 16', views: 229, watchTimeHours: 10.9 },
+  { day: 'D17', dateLabel: 'Day 17', views: 196, watchTimeHours: 9.2 },
+  { day: 'D18', dateLabel: 'Day 18', views: 184, watchTimeHours: 8.6 },
+  { day: 'D19', dateLabel: 'Day 19', views: 175, watchTimeHours: 8.1 },
+  { day: 'D20', dateLabel: 'Day 20', views: 192, watchTimeHours: 9.0 },
+  { day: 'D21', dateLabel: 'Day 21', views: 208, watchTimeHours: 9.8 },
+  { day: 'D22', dateLabel: 'Day 22', views: 199, watchTimeHours: 9.4 },
+  { day: 'D23', dateLabel: 'Day 23', views: 224, watchTimeHours: 10.6 },
+  { day: 'D24', dateLabel: 'Day 24', views: 241, watchTimeHours: 11.4 },
+  { day: 'D25', dateLabel: 'Day 25', views: 263, watchTimeHours: 12.6, milestone: 'Neon Nights Playlist Lift' },
+  { day: 'D26', dateLabel: 'Day 26', views: 252, watchTimeHours: 11.9 },
+  { day: 'D27', dateLabel: 'Day 27', views: 279, watchTimeHours: 13.4 },
+  { day: 'D28', dateLabel: 'Day 28', views: 312, watchTimeHours: 14.8, milestone: 'Not Dancing Premiere' },
+  { day: 'D29', dateLabel: 'Day 29', views: 294, watchTimeHours: 14.0 },
+  { day: 'D30', dateLabel: 'Day 30', views: 326, watchTimeHours: 15.6 },
+];
+
 export const NEON_NIGHTS_PLAYLIST = {
   title: 'NEON NIGHTS ⚡ | Cinematic EDM, Synthwave & Electronic Music',
   tagline: 'Where Music Meets the Future.',
@@ -201,7 +248,7 @@ export const THREE_PILLARS: ChannelPillar[] = [
     index: '01',
     title: 'Music',
     subtitle: 'Heart of the Channel',
-    accentColor: '#FF7A00',
+    accentColor: '#FF7B00',
     description:
       'Emotional storytelling wrapped in cinematic EDM, melodic synthwave, and multilingual experimental production. Anchored by animated music videos and the Neon Nights playlist.',
     highlights: [
