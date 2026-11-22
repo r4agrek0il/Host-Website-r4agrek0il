@@ -6,6 +6,15 @@ export interface LiveChannelSnapshot {
   lastUpdated: string;
   deltaSubs: number;
   deltaViews: number;
+  isLiveSynced?: boolean;
+}
+
+interface TelemetryApiResponse {
+  ok?: boolean;
+  source?: string;
+  subscribers?: number | null;
+  totalViews?: number | null;
+  fetchedAt?: string;
 }
 
 const BASE_SUBSCRIBERS = 204;
@@ -14,42 +23,89 @@ const BASE_TODAY_VIEWS = 326;
 const BASE_TODAY_WATCH_HOURS = 15.6;
 
 /**
- * Simulated real-time YouTube telemetry poller.
- * Emits incremental subscriber, total view, and active-day engagement ticks.
+ * Real YouTube telemetry poller.
+ * Queries /api/telemetry for actual channel subscriber and total view counts
+ * and NEVER fabricates random subscriber or view increments when counts are unchanged.
  */
-export function pollChannelTelemetry(
+export async function pollChannelTelemetry(
   previous: LiveChannelSnapshot | null
 ): Promise<LiveChannelSnapshot> {
-  return new Promise((resolve) => {
-    const delay = 220 + Math.floor(Math.random() * 180);
-    window.setTimeout(() => {
-      const subBump = Math.random() > 0.62 ? 1 : 0;
-      const viewBump = 1 + Math.floor(Math.random() * 5);
-      const watchBump = Number((viewBump * 0.048).toFixed(2));
-
-      const prevSubs = previous?.subscribers ?? BASE_SUBSCRIBERS;
-      const prevTotal = previous?.totalViews ?? BASE_TOTAL_VIEWS;
-      const prevToday = previous?.todayViews ?? BASE_TODAY_VIEWS;
-      const prevHours = previous?.todayWatchHours ?? BASE_TODAY_WATCH_HOURS;
-
-      const now = new Date();
-      const timestamp = now.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
-
-      resolve({
-        subscribers: prevSubs + subBump,
-        totalViews: prevTotal + viewBump,
-        todayViews: prevToday + viewBump,
-        todayWatchHours: Number((prevHours + watchBump).toFixed(1)),
-        lastUpdated: timestamp,
-        deltaSubs: subBump,
-        deltaViews: viewBump,
-      });
-    }, delay);
+  const prev = previous ?? getInitialSnapshot();
+  const timestamp = new Date().toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   });
+
+  try {
+    const res = await fetch('/api/telemetry', {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!res.ok || !contentType.includes('application/json')) {
+      return {
+        ...prev,
+        deltaSubs: 0,
+        deltaViews: 0,
+        lastUpdated: prev.isLiveSynced ? timestamp : 'Verified Baseline',
+      };
+    }
+
+    const data = (await res.json()) as TelemetryApiResponse;
+    if (!data.ok) {
+      return {
+        ...prev,
+        deltaSubs: 0,
+        deltaViews: 0,
+        lastUpdated: prev.isLiveSynced ? timestamp : 'Verified Baseline',
+      };
+    }
+
+    const nextSubs =
+      typeof data.subscribers === 'number' && Number.isFinite(data.subscribers)
+        ? data.subscribers
+        : prev.subscribers;
+
+    const nextTotalViews =
+      typeof data.totalViews === 'number' && Number.isFinite(data.totalViews)
+        ? data.totalViews
+        : prev.totalViews;
+
+    // Only report incremental deltas after initial live sync, never from static baseline
+    const deltaSubs =
+      prev.isLiveSynced && nextSubs > prev.subscribers ? nextSubs - prev.subscribers : 0;
+    const deltaViews =
+      prev.isLiveSynced && nextTotalViews > prev.totalViews
+        ? nextTotalViews - prev.totalViews
+        : 0;
+
+    const nextTodayViews = prev.todayViews + deltaViews;
+    const nextTodayHours =
+      deltaViews > 0
+        ? Number((prev.todayWatchHours + deltaViews * 0.048).toFixed(1))
+        : prev.todayWatchHours;
+
+    return {
+      subscribers: nextSubs,
+      totalViews: nextTotalViews,
+      todayViews: nextTodayViews,
+      todayWatchHours: nextTodayHours,
+      lastUpdated: timestamp,
+      deltaSubs,
+      deltaViews,
+      isLiveSynced: true,
+    };
+  } catch {
+    return {
+      ...prev,
+      deltaSubs: 0,
+      deltaViews: 0,
+      lastUpdated: prev.isLiveSynced ? timestamp : 'Verified Baseline',
+    };
+  }
 }
 
 export function getInitialSnapshot(): LiveChannelSnapshot {
@@ -61,5 +117,6 @@ export function getInitialSnapshot(): LiveChannelSnapshot {
     lastUpdated: 'Snapshot',
     deltaSubs: 0,
     deltaViews: 0,
+    isLiveSynced: false,
   };
 }
