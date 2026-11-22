@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AudioDeck from './components/AudioDeck';
 import BootSequence from './components/BootSequence';
 import ChannelMarquee from './components/ChannelMarquee';
 import CinemaModal from './components/CinemaModal';
 import CinemaVault from './components/CinemaVault';
 import CommunityNexus from './components/CommunityNexus';
-import ConciergeTerminal from './components/ConciergeTerminal';
 import CyberBackdrop from './components/CyberBackdrop';
 import CyberSonicStage3D from './components/CyberSonicStage3D';
 import EngagementAnalytics from './components/EngagementAnalytics';
@@ -16,6 +15,11 @@ import PillarsMatrix from './components/PillarsMatrix';
 import ShortsFeed from './components/ShortsFeed';
 import { CHANNEL_VIDEOS, LAST_5_TRACKS, type ChannelVideo } from './data/channel';
 import { cyberAudio } from './utils/audioEngine';
+import {
+  getInitialSnapshot,
+  pollChannelTelemetry,
+  type LiveChannelSnapshot,
+} from './utils/telemetryPoller';
 
 export default function App() {
   const [bootComplete, setBootComplete] = useState(false);
@@ -30,6 +34,45 @@ export default function App() {
   const [activeVaultVideo, setActiveVaultVideo] = useState<ChannelVideo>(LAST_5_TRACKS[0]);
   const [isPlayingInline, setIsPlayingInline] = useState(false);
   const [modalVideo, setModalVideo] = useState<ChannelVideo | null>(null);
+
+  // Synced Live Views & Subscribers Telemetry State
+  const [liveMode, setLiveMode] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const [liveSnapshot, setLiveSnapshot] = useState<LiveChannelSnapshot>(getInitialSnapshot);
+  const snapshotRef = useRef<LiveChannelSnapshot>(liveSnapshot);
+
+  useEffect(() => {
+    snapshotRef.current = liveSnapshot;
+  }, [liveSnapshot]);
+
+  useEffect(() => {
+    if (!liveMode) return;
+
+    let cancelled = false;
+    const runPoll = async () => {
+      setIsPolling(true);
+      const next = await pollChannelTelemetry(snapshotRef.current);
+      if (!cancelled) {
+        setLiveSnapshot(next);
+        setIsPolling(false);
+      }
+    };
+
+    void runPoll();
+    const intervalId = window.setInterval(() => {
+      void runPoll();
+    }, 3500);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      setIsPolling(false);
+    };
+  }, [liveMode]);
+
+  const handleToggleLiveMode = useCallback(() => {
+    setLiveMode((prev) => !prev);
+  }, []);
 
   const currentDeckTrack = LAST_5_TRACKS[currentTrackIndex] ?? LAST_5_TRACKS[0];
   const anyPlaybackActive = isDeckPlaying || isPlayingInline || modalVideo !== null;
@@ -128,7 +171,12 @@ export default function App() {
         <HeroStage
           currentDeckTrack={currentDeckTrack}
           isDeckPlaying={isDeckPlaying}
+          isPlaybackActive={anyPlaybackActive}
           isAudioMuted={isAudioMuted}
+          liveMode={liveMode}
+          isPolling={isPolling}
+          liveSnapshot={liveSnapshot}
+          onToggleLiveMode={handleToggleLiveMode}
           onToggleDeckPlay={handleToggleDeckPlay}
           onToggleMasterMute={handleToggleMasterMute}
           onOpenCinemaModal={handleOpenModal}
@@ -143,15 +191,18 @@ export default function App() {
           onOpenModal={handleOpenModal}
         />
 
-        <EngagementAnalytics />
+        <EngagementAnalytics
+          liveMode={liveMode}
+          isPolling={isPolling}
+          liveSnapshot={liveSnapshot}
+          onToggleLiveMode={handleToggleLiveMode}
+        />
 
         <CyberSonicStage3D isPlaying={anyPlaybackActive} />
 
         <ShortsFeed onOpenShort={handleOpenModal} />
 
         <PillarsMatrix />
-
-        <ConciergeTerminal onPlayTrack={handleOpenModal} />
 
         <CommunityNexus />
       </main>

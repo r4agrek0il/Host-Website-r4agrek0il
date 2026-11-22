@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Activity, RefreshCw, TrendingUp } from 'lucide-react';
 import {
@@ -11,14 +11,17 @@ import {
   YAxis,
 } from 'recharts';
 import { ENGAGEMENT_30_DAYS, type DailyEngagementPoint } from '../data/channel';
-import {
-  getInitialSnapshot,
-  pollChannelTelemetry,
-  type LiveChannelSnapshot,
-} from '../utils/telemetryPoller';
+import type { LiveChannelSnapshot } from '../utils/telemetryPoller';
 
 type TimeWindow = 30 | 14 | 7;
 type MetricView = 'both' | 'views' | 'watchTime';
+
+interface EngagementAnalyticsProps {
+  liveMode: boolean;
+  isPolling: boolean;
+  liveSnapshot: LiveChannelSnapshot;
+  onToggleLiveMode: () => void;
+}
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -60,44 +63,15 @@ function EngagementTooltip({ active, payload }: CustomTooltipProps) {
   );
 }
 
-export default function EngagementAnalytics() {
+export default function EngagementAnalytics({
+  liveMode,
+  isPolling,
+  liveSnapshot,
+  onToggleLiveMode,
+}: EngagementAnalyticsProps) {
   const [windowDays, setWindowDays] = useState<TimeWindow>(30);
   const [metricView, setMetricView] = useState<MetricView>('both');
-  const [liveMode, setLiveMode] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
-  const [liveSnapshot, setLiveSnapshot] = useState<LiveChannelSnapshot>(getInitialSnapshot);
   const [hoveredPoint, setHoveredPoint] = useState<DailyEngagementPoint | null>(null);
-  const snapshotRef = useRef<LiveChannelSnapshot>(liveSnapshot);
-
-  useEffect(() => {
-    snapshotRef.current = liveSnapshot;
-  }, [liveSnapshot]);
-
-  // Simulated polling loop when 'Live Data' toggle switch is enabled
-  useEffect(() => {
-    if (!liveMode) return;
-
-    let cancelled = false;
-    const runPoll = async () => {
-      setIsPolling(true);
-      const next = await pollChannelTelemetry(snapshotRef.current);
-      if (!cancelled) {
-        setLiveSnapshot(next);
-        setIsPolling(false);
-      }
-    };
-
-    void runPoll();
-    const intervalId = window.setInterval(() => {
-      void runPoll();
-    }, 3500);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-      setIsPolling(false);
-    };
-  }, [liveMode]);
 
   // Update the latest day's point when Live Data is active
   const visibleData = useMemo(() => {
@@ -159,7 +133,7 @@ export default function EngagementAnalytics() {
               type="button"
               role="switch"
               aria-checked={liveMode}
-              onClick={() => setLiveMode((prev) => !prev)}
+              onClick={onToggleLiveMode}
               className={`inline-flex min-h-[40px] items-center gap-2.5 rounded-xl border px-3.5 py-2 font-mono text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF] ${
                 liveMode
                   ? 'border-[#00F0FF]/60 bg-[#00F0FF]/15 text-[#00F0FF]'

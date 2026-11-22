@@ -12,8 +12,8 @@ const NAV_LINKS = [
   { label: 'Cinema', href: '#cinema' },
   { label: 'Analytics', href: '#analytics' },
   { label: '3D Core', href: '#sonic-stage' },
+  { label: 'Shorts', href: '#shorts' },
   { label: 'Pillars', href: '#pillars' },
-  { label: 'Concierge', href: '#concierge' },
 ];
 
 export default function Navbar({ isAudioMuted, onToggleMasterMute }: NavbarProps) {

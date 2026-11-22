@@ -286,10 +286,10 @@ export const THREE_PILLARS: ChannelPillar[] = [
     highlights: [
       'Sci-fi visual storytelling & animated worlds',
       'Acoustic telemetry & custom frequency art',
-      'Interactive R4-AI mood matching on this hub',
+      'Interactive 3D Mythic audio hardware & HUD telemetry',
     ],
-    ctaLabel: 'Launch R4-AI Concierge',
-    ctaHref: '#concierge',
+    ctaLabel: 'Inspect 3D Mythic Core',
+    ctaHref: '#sonic-stage',
   },
 ];
 
