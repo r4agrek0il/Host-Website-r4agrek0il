@@ -9,6 +9,19 @@ import {
   type ChannelVideo,
   type RssVideoEntry,
 } from '../data/channel';
+import type { Popular, Spotlight, SpotlightReason } from './spotlight';
+
+export interface ApiPicks {
+  spotlight?: Spotlight | null;
+  popular?: Popular | null;
+}
+
+export interface SpotlightPick {
+  video: ChannelVideo;
+  reason: SpotlightReason;
+  gained?: number;
+  windowHours?: number;
+}
 
 export interface ChannelVideosState {
   /** Every release, newest first (full videos + Shorts). */
@@ -20,9 +33,18 @@ export interface ChannelVideosState {
   /** Newest full video by published date. */
   latestDrop: ChannelVideo;
   isLive: boolean;
+  /** Automatic Spotlight (live data only). */
+  spotlight: SpotlightPick | null;
+  /** Most viewed full video / Short (live data only). */
+  topVideo: ChannelVideo | null;
+  topShort: ChannelVideo | null;
 }
 
-export function buildChannelState(rss: RssVideoEntry[] | null, now = Date.now()): ChannelVideosState {
+export function buildChannelState(
+  rss: RssVideoEntry[] | null,
+  now = Date.now(),
+  picks: ApiPicks = {}
+): ChannelVideosState {
   const live = Boolean(rss && rss.length > 0);
   const merged = live ? mergeVideos(rss as RssVideoEntry[], CHANNEL_VIDEOS) : CHANNEL_VIDEOS;
   const latestId = pickLatestDrop(merged)?.videoId;
@@ -32,7 +54,21 @@ export function buildChannelState(rss: RssVideoEntry[] | null, now = Date.now())
     ? full.slice(0, 5)
     : LAST_5_TRACKS.map((t) => full.find((v) => v.videoId === t.videoId) ?? t);
   const shorts = videos.filter((v) => v.isShort);
-  return { videos, tracks, shorts, latestDrop: tracks[0] ?? full[0] ?? videos[0], isLive: live };
+  const byId = (id: string | null | undefined) => (live && id ? videos.find((v) => v.videoId === id) ?? null : null);
+  const sp = picks.spotlight;
+  const spVideo = byId(sp?.videoId);
+  const spotlight: SpotlightPick | null =
+    sp && spVideo ? { video: spVideo, reason: sp.reason, gained: sp.gained, windowHours: sp.windowHours } : null;
+  return {
+    videos,
+    tracks,
+    shorts,
+    latestDrop: tracks[0] ?? full[0] ?? videos[0],
+    isLive: live,
+    spotlight,
+    topVideo: byId(picks.popular?.topVideoId),
+    topShort: byId(picks.popular?.topShortId),
+  };
 }
 
 const FALLBACK = buildChannelState(null);
@@ -47,9 +83,9 @@ export function useChannelVideos(): ChannelVideosState {
       try {
         const res = await fetch('/api/videos', { signal: controller.signal });
         if (!res.ok) return;
-        const data = (await res.json()) as { ok?: boolean; videos?: RssVideoEntry[] };
+        const data = (await res.json()) as { ok?: boolean; videos?: RssVideoEntry[] } & ApiPicks;
         if (!data?.ok || !Array.isArray(data.videos) || data.videos.length === 0) return;
-        setState(buildChannelState(data.videos));
+        setState(buildChannelState(data.videos, Date.now(), { spotlight: data.spotlight, popular: data.popular }));
       } catch {
         // keep curated fallback
       } finally {

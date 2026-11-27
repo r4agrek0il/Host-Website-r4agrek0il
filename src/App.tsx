@@ -14,6 +14,7 @@ import HeroStage from './components/HeroStage';
 import Navbar from './components/Navbar';
 import PillarsMatrix from './components/PillarsMatrix';
 import ShortsFeed from './components/ShortsFeed';
+import SpotlightPopular from './components/SpotlightPopular';
 import { type ChannelVideo } from './data/channel';
 import { useChannelVideos } from './utils/useChannelVideos';
 import { cyberAudio } from './utils/audioEngine';
@@ -56,7 +57,16 @@ export default function App() {
   const [bootComplete, setBootComplete] = useState(shouldSkipBoot);
 
   // Live YouTube uploads (RSS via /api/videos) merged with curated metadata
-  const { videos: channelVideos, tracks: deckTracks, shorts: liveShorts, latestDrop } = useChannelVideos();
+  const {
+    videos: channelVideos,
+    tracks: deckTracks,
+    shorts: liveShorts,
+    latestDrop,
+    isLive,
+    spotlight,
+    topVideo,
+    topShort,
+  } = useChannelVideos();
   const deckTracksRef = useRef(deckTracks);
 
   // Synced Audio Deck (Last 5 Tracks) + Synthwave Background Loop State
@@ -251,6 +261,14 @@ export default function App() {
         />
 
         <ChannelMarquee titles={marqueeTitles} />
+
+        <SpotlightPopular
+          isLive={isLive}
+          spotlight={spotlight}
+          topVideo={topVideo}
+          topShort={topShort}
+          onPlay={handleOpenModal}
+        />
 
         <CinemaVault
           activeVideo={activeVaultVideo}

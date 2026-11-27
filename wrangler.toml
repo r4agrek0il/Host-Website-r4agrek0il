@@ -1,3 +1,17 @@
 name = "r4agrek0il"
 compatibility_date = "2026-11-01"
 pages_build_output_dir = "dist"
+
+# --- Optional: automatic "Trending" Spotlight -------------------------------
+# /api/videos stores an hourly view snapshot in KV so it can spotlight the video
+# gaining the most views. Without this binding it falls back to "rising"
+# (views/day among uploads from the last 14 days). To enable:
+#   1. npx wrangler kv namespace create VIDEO_STATS
+#   2. paste the printed id below and uncomment (or bind it in
+#      Cloudflare Pages > Settings > Bindings > KV namespace, name VIDEO_STATS)
+# [[kv_namespaces]]
+# binding = "VIDEO_STATS"
+# id = "<your-namespace-id>"
+#
+# Optional manual override: set SPOTLIGHT_VIDEO_ID (Pages > Settings > Variables)
+# to a video id from the feed to pin it as the Spotlight. Remove it to go back to auto.

@@ -1,8 +1,64 @@
 import { parseFeed, type FeedEntry } from '../../src/utils/parseFeed';
+import {
+  addSnapshot,
+  computePopular,
+  computeSpotlight,
+  type Popular,
+  type Snapshot,
+  type Spotlight,
+} from '../../src/utils/spotlight';
+
+interface KVLike {
+  get(key: string, type: 'json'): Promise<unknown>;
+  put(key: string, value: string): Promise<void>;
+}
+
+interface Env {
+  /** Optional KV namespace for hourly view snapshots (enables "trending"). */
+  VIDEO_STATS?: KVLike;
+  /** Optional video id to pin as Spotlight. */
+  SPOTLIGHT_VIDEO_ID?: string;
+}
 
 interface CloudflarePagesContext {
   request: Request;
+  env?: Env;
   waitUntil?: (promise: Promise<unknown>) => void;
+}
+
+const SNAPSHOT_KEY = 'snapshots';
+
+async function readSnapshots(kv: KVLike | undefined): Promise<Snapshot[] | null> {
+  if (!kv) return null;
+  try {
+    const data = await kv.get(SNAPSHOT_KEY, 'json');
+    return Array.isArray(data) ? (data as Snapshot[]) : [];
+  } catch {
+    return null;
+  }
+}
+
+async function recordSnapshot(kv: KVLike | undefined, existing: Snapshot[] | null, videos: FeedEntry[]) {
+  if (!kv || existing === null) return;
+  try {
+    const next = addSnapshot(existing, videos, Date.now());
+    if (next) await kv.put(SNAPSHOT_KEY, JSON.stringify(next));
+  } catch {
+    // KV is best-effort
+  }
+}
+
+async function withPicks(data: VideosResult, env: Env | undefined, snapshots?: Snapshot[] | null): Promise<VideosResult> {
+  try {
+    const snaps = snapshots !== undefined ? snapshots : await readSnapshots(env?.VIDEO_STATS);
+    return {
+      ...data,
+      spotlight: computeSpotlight(data.videos, snaps, Date.now(), env?.SPOTLIGHT_VIDEO_ID),
+      popular: computePopular(data.videos),
+    };
+  } catch {
+    return { ...data, spotlight: null, popular: { topVideoId: null, topShortId: null } };
+  }
 }
 
 interface VideosResult {
@@ -10,6 +66,8 @@ interface VideosResult {
   fetchedAt: string | null;
   videos: FeedEntry[];
   stale?: boolean;
+  spotlight?: Spotlight | null;
+  popular?: Popular;
 }
 
 const CHANNEL_ID = 'UCdyybiezt4xZHtGVdx_nzYQ';
@@ -87,9 +145,10 @@ async function detectShorts(videos: FeedEntry[]): Promise<void> {
 
 export async function onRequestGet(context: CloudflarePagesContext): Promise<Response> {
   const cache = getCache();
+  const env = context.env;
 
   const fresh = await readCached(cache, FRESH_KEY);
-  if (fresh?.ok) return jsonResponse(fresh);
+  if (fresh?.ok) return jsonResponse(await withPicks(fresh, env));
 
   try {
     const res = await fetch(FEED_URL, { headers: { Accept: 'application/atom+xml' } });
@@ -98,16 +157,18 @@ export async function onRequestGet(context: CloudflarePagesContext): Promise<Res
     if (videos.length === 0) throw new Error('empty feed');
     await detectShorts(videos);
     const result: VideosResult = { ok: true, fetchedAt: new Date().toISOString(), videos };
+    const snapshots = await readSnapshots(env?.VIDEO_STATS);
     const writes = Promise.all([
       writeCached(cache, FRESH_KEY, result, FRESH_TTL_S),
       writeCached(cache, STALE_KEY, result, STALE_TTL_S),
+      recordSnapshot(env?.VIDEO_STATS, snapshots, videos),
     ]);
     if (context.waitUntil) context.waitUntil(writes);
     else await writes;
-    return jsonResponse(result);
+    return jsonResponse(await withPicks(result, env, snapshots));
   } catch {
     const stale = await readCached(cache, STALE_KEY);
-    if (stale?.ok) return jsonResponse({ ...stale, stale: true });
+    if (stale?.ok) return jsonResponse(await withPicks({ ...stale, stale: true }, env));
     return jsonResponse({ ok: false, fetchedAt: null, videos: [] });
   }
 }
