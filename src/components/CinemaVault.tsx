@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ArrowUpRight, Maximize2, Play, Search, Sparkles, X } from 'lucide-react';
+import { ArrowUpRight, Maximize2, Play, Search, Share2, Sparkles, X } from 'lucide-react';
+import SubscribeButton from './SubscribeButton';
+import { shareLink } from '../utils/share';
 import {
+  SUBSCRIBE_URL,
   CHANNEL_VIDEOS,
   getYouTubeThumbnailUrl,
   getYouTubeWatchUrl,
@@ -35,6 +38,7 @@ export default function CinemaVault({
   onOpenModal,
   videos = CHANNEL_VIDEOS,
 }: CinemaVaultProps) {
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<ReleaseCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [ambientGlow, setAmbientGlow] = useState(true);
@@ -206,6 +210,24 @@ export default function CinemaVault({
                     <span>YouTube</span>
                     <ArrowUpRight className="h-3.5 w-3.5" />
                   </a>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await shareLink(
+                        getYouTubeWatchUrl(activeVideo.videoId, activeVideo.isShort),
+                        activeVideo.title
+                      );
+                      setShareStatus(result === 'copied' ? 'Link copied' : result === 'shared' ? 'Shared' : null);
+                      window.setTimeout(() => setShareStatus(null), 2000);
+                    }}
+                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3.5 py-2 text-xs font-medium text-white whitespace-nowrap transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span>{shareStatus ?? 'Share'}</span>
+                  </button>
+
+                  <SubscribeButton size="sm" />
                 </div>
               </div>
             </div>
@@ -380,6 +402,15 @@ export default function CinemaVault({
                       >
                         <span>YouTube</span>
                         <ArrowUpRight className="h-3.5 w-3.5" />
+                      </a>
+
+                      <a
+                        href={SUBSCRIBE_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-semibold text-[#FF7A00] hover:underline"
+                      >
+                        Subscribe
                       </a>
                     </div>
                   </div>

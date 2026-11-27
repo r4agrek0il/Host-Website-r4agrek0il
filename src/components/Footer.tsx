@@ -1,4 +1,4 @@
-import { CHANNEL_PROFILE } from '../data/channel';
+import { CHANNEL_PROFILE, SUBSCRIBE_URL } from '../data/channel';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -26,6 +26,14 @@ export default function Footer() {
             className="whitespace-nowrap transition-colors hover:text-[#00F0FF]"
           >
             YouTube
+          </a>
+          <a
+            href={SUBSCRIBE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="whitespace-nowrap font-semibold text-[#FF7A00] transition-colors hover:text-[#FFB800]"
+          >
+            Subscribe
           </a>
           <a
             href={CHANNEL_PROFILE.urls.videos}

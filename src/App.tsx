@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AudioDeck from './components/AudioDeck';
 import BootSequence from './components/BootSequence';
+import MobileSubscribePill from './components/MobileSubscribePill';
 import ChannelMarquee from './components/ChannelMarquee';
 import CinemaModal from './components/CinemaModal';
 import CinemaVault from './components/CinemaVault';
@@ -22,8 +23,32 @@ import {
   type LiveChannelSnapshot,
 } from './utils/telemetryPoller';
 
+const BOOT_SEEN_KEY = 'r4ag-boot-seen';
+
+// Skip the boot intro for campaign/referral traffic, repeat views this session, and reduced-motion users.
+function shouldSkipBoot(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('src') || params.has('utm_source')) return true;
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (window.sessionStorage.getItem(BOOT_SEEN_KEY)) return true;
+  } catch {
+    /* storage unavailable */
+  }
+  try {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 export default function App() {
-  const [bootComplete, setBootComplete] = useState(false);
+  const [bootComplete, setBootComplete] = useState(shouldSkipBoot);
 
   // Live YouTube uploads (RSS via /api/videos) merged with curated metadata
   const { videos: channelVideos, tracks: deckTracks, shorts: liveShorts } = useChannelVideos();
@@ -101,6 +126,11 @@ export default function App() {
   const anyPlaybackActive = isDeckPlaying || isPlayingInline || modalVideo !== null;
 
   const handleBootComplete = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(BOOT_SEEN_KEY, '1');
+    } catch {
+      /* storage unavailable */
+    }
     setBootComplete(true);
   }, []);
 
@@ -185,6 +215,7 @@ export default function App() {
       <CyberBackdrop isPlaying={anyPlaybackActive} />
 
       {!bootComplete && <BootSequence onComplete={handleBootComplete} />}
+      <MobileSubscribePill />
 
       <Navbar
         isAudioMuted={isAudioMuted}

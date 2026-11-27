@@ -43,6 +43,9 @@ export interface DailyEngagementPoint {
   milestone?: string;
 }
 
+export const SUBSCRIBE_URL =
+  'https://www.youtube.com/channel/UCdyybiezt4xZHtGVdx_nzYQ?sub_confirmation=1';
+
 export const CHANNEL_PROFILE = {
   name: 'R4agRek0il',
   handle: '@R4agRek0il',
@@ -58,7 +61,7 @@ export const CHANNEL_PROFILE = {
     videos: 'https://www.youtube.com/@R4agRek0il/videos',
     shorts: 'https://www.youtube.com/@R4agRek0il/shorts',
     playlists: 'https://www.youtube.com/@R4agRek0il/playlists',
-    subscribe: 'https://www.youtube.com/@R4agRek0il?sub_confirmation=1',
+    subscribe: SUBSCRIBE_URL,
     instagram: 'https://www.instagram.com/r4agrek0il/',
   },
 } as const;

@@ -8,6 +8,7 @@ import {
 } from '../data/channel';
 import { cyberAudio } from '../utils/audioEngine';
 import ReleaseArtwork from './ReleaseArtwork';
+import SubscribeButton from './SubscribeButton';
 
 interface ShortsFeedProps {
   onOpenShort: (video: ChannelVideo) => void;
@@ -89,6 +90,7 @@ export default function ShortsFeed({ onOpenShort, shorts }: ShortsFeedProps) {
             <span>Open All Shorts</span>
             <ArrowUpRight className="h-4 w-4" />
           </a>
+          <SubscribeButton size="sm" className="shrink-0" />
         </div>
 
         {/* Horizontal 9:16 Showcase Grid */}

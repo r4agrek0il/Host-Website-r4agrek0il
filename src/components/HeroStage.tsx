@@ -20,6 +20,7 @@ import {
 import { cyberAudio } from '../utils/audioEngine';
 import type { LiveChannelSnapshot } from '../utils/telemetryPoller';
 import MythicLogoSVG from './MythicLogoSVG';
+import { SUBSCRIBE_URL } from '../data/channel';
 
 interface HeroStageProps {
   currentDeckTrack: ChannelVideo;
@@ -440,13 +441,23 @@ export default function HeroStage({
             </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a
+                href={SUBSCRIBE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-[#FF7B00] px-5 py-2.5 text-sm font-semibold text-[#04071A] whitespace-nowrap shrink-0 shadow-[0_0_24px_rgba(255,123,0,0.35)] transition-colors duration-150 hover:bg-[#FFB800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+              >
+                <span>Subscribe on YouTube</span>
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+
               <button
                 type="button"
                 onClick={() => {
                   cyberAudio.playUiPulse(820);
                   onOpenCinemaModal(currentDeckTrack);
                 }}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-[#FF7B00] px-5 py-2.5 text-sm font-semibold text-[#04071A] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FFB800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[#FF7B00]/45 bg-[#FF7B00]/10 px-4 py-2.5 text-sm font-semibold text-[#FF7B00] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FF7B00]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
               >
                 <Play className="h-4 w-4 fill-current" />
                 <span>Launch Latest Drop</span>
@@ -460,15 +471,6 @@ export default function HeroStage({
                 <span>Explore Neon Nights</span>
               </a>
 
-              <a
-                href={CHANNEL_PROFILE.urls.subscribe}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
-              >
-                <span>Subscribe on YouTube</span>
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
             </div>
           </div>
 
