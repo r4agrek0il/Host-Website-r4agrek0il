@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ArrowUpRight, Maximize2, Play, Search, Sparkles, X } from 'lucide-react';
+import { ArrowUpRight, Maximize2, Play, Search, Share2, Sparkles, X } from 'lucide-react';
+import SubscribeButton from './SubscribeButton';
+import { shareLink } from '../utils/share';
 import {
+  SUBSCRIBE_URL,
   CHANNEL_VIDEOS,
   getYouTubeThumbnailUrl,
   getYouTubeWatchUrl,
@@ -16,6 +19,8 @@ interface CinemaVaultProps {
   isPlayingInline: boolean;
   onSelectInlineVideo: (video: ChannelVideo, autoPlay?: boolean) => void;
   onOpenModal: (video: ChannelVideo) => void;
+  /** Vault catalogue; defaults to curated CHANNEL_VIDEOS. */
+  videos?: ChannelVideo[];
 }
 
 const FILTER_TABS: { id: ReleaseCategory; label: string }[] = [
@@ -31,7 +36,9 @@ export default function CinemaVault({
   isPlayingInline,
   onSelectInlineVideo,
   onOpenModal,
+  videos = CHANNEL_VIDEOS,
 }: CinemaVaultProps) {
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<ReleaseCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [ambientGlow, setAmbientGlow] = useState(true);
@@ -39,10 +46,10 @@ export default function CinemaVault({
 
   const filteredVideos = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return CHANNEL_VIDEOS.filter((video) => {
+    return videos.filter((video) => {
       const matchesCategory =
         activeCategory === 'all'
-          ? true
+          ? !video.isShort && video.category !== 'shorts'
           : activeCategory === 'neon-nights'
             ? Boolean(video.inNeonNights)
             : video.category === activeCategory;
@@ -53,7 +60,7 @@ export default function CinemaVault({
         video.moodTags.some((tag) => tag.toLowerCase().includes(q));
       return matchesCategory && matchesQuery;
     });
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, videos]);
 
   const markThumbFailed = (videoId: string) => {
     setFailedThumbs((prev) => ({ ...prev, [videoId]: true }));
@@ -123,6 +130,10 @@ export default function CinemaVault({
                     {!failedThumbs[activeVideo.videoId] ? (
                       <img
                         src={getYouTubeThumbnailUrl(activeVideo.videoId)}
+                        width={480}
+                        height={360}
+                        loading="lazy"
+                        decoding="async"
                         alt={activeVideo.title}
                         referrerPolicy="no-referrer"
                         onError={() => markThumbFailed(activeVideo.videoId)}
@@ -157,8 +168,12 @@ export default function CinemaVault({
                     <span className="text-[#00F0FF]">{activeVideo.index}</span>
                     <span aria-hidden="true">·</span>
                     <span>{activeVideo.categoryLabel}</span>
-                    <span aria-hidden="true">·</span>
-                    <span>{activeVideo.duration}</span>
+                    {activeVideo.duration && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{activeVideo.duration}</span>
+                      </>
+                    )}
                   </div>
 
                   <h3 className="mt-3 font-display text-xl font-bold leading-snug text-white">
@@ -199,6 +214,24 @@ export default function CinemaVault({
                     <span>YouTube</span>
                     <ArrowUpRight className="h-3.5 w-3.5" />
                   </a>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await shareLink(
+                        getYouTubeWatchUrl(activeVideo.videoId, activeVideo.isShort),
+                        activeVideo.title
+                      );
+                      setShareStatus(result === 'copied' ? 'Link copied' : result === 'shared' ? 'Shared' : null);
+                      window.setTimeout(() => setShareStatus(null), 2000);
+                    }}
+                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3.5 py-2 text-xs font-medium text-white whitespace-nowrap transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span>{shareStatus ?? 'Share'}</span>
+                  </button>
+
+                  <SubscribeButton size="sm" />
                 </div>
               </div>
             </div>
@@ -305,6 +338,10 @@ export default function CinemaVault({
                     {!failedThumbs[video.videoId] ? (
                       <img
                         src={getYouTubeThumbnailUrl(video.videoId)}
+                        width={480}
+                        height={360}
+                        loading="lazy"
+                        decoding="async"
                         alt={video.title}
                         referrerPolicy="no-referrer"
                         onError={() => markThumbFailed(video.videoId)}
@@ -321,9 +358,16 @@ export default function CinemaVault({
                     <span className="absolute right-3 bottom-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#FF7A00] text-[#04071A] shadow-md transition-transform duration-150 group-hover:scale-105">
                       <Play className="ml-0.5 h-4 w-4 fill-current" />
                     </span>
-                    <span className="absolute bottom-3 left-3 font-mono text-xs font-medium text-white tabular-nums">
-                      {video.duration}
-                    </span>
+                    {video.duration && (
+                      <span className="absolute bottom-3 left-3 font-mono text-xs font-medium text-white tabular-nums">
+                        {video.duration}
+                      </span>
+                    )}
+                    {video.isNew && (
+                      <span className="absolute top-3 left-3 inline-flex items-center rounded-full border border-[#FF7A00]/60 bg-[#04071A]/85 px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-wider text-[#FF7A00] shadow-[0_0_12px_rgba(255,122,0,0.45)]">
+                        NEW
+                      </span>
+                    )}
                   </button>
 
                   {/* Metadata & Actions */}
@@ -353,7 +397,7 @@ export default function CinemaVault({
                           cyberAudio.playUiPulse(720);
                           onOpenModal(video);
                         }}
-                        className="font-semibold text-[#00F0FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+                        className="font-semibold max-md:inline-flex max-md:min-h-10 max-md:items-center text-[#00F0FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
                       >
                         Open Theater
                       </button>
@@ -362,10 +406,19 @@ export default function CinemaVault({
                         href={getYouTubeWatchUrl(video.videoId, video.isShort)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-medium text-slate-300 hover:text-[#FF7A00]"
+                        className="inline-flex max-md:min-h-10 items-center gap-1 font-medium text-slate-300 hover:text-[#FF7A00]"
                       >
                         <span>YouTube</span>
                         <ArrowUpRight className="h-3.5 w-3.5" />
+                      </a>
+
+                      <a
+                        href={SUBSCRIBE_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex max-md:min-h-10 items-center gap-1 font-semibold text-[#FF7A00] hover:underline"
+                      >
+                        Subscribe
                       </a>
                     </div>
                   </div>

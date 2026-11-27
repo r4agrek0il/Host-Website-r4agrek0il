@@ -1,1 +1,4 @@
+# SPA fallback. Cloudflare Pages serves files that exist (robots.txt, sitemap.xml,
+# /assets/*) before applying 200 rewrites, and Pages Functions (/api/*) run first,
+# so only unknown paths fall through to index.html.
 /* /index.html 200

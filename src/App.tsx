@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MotionConfig } from 'motion/react';
 import AudioDeck from './components/AudioDeck';
 import BootSequence from './components/BootSequence';
 import ChannelMarquee from './components/ChannelMarquee';
@@ -6,23 +7,66 @@ import CinemaModal from './components/CinemaModal';
 import CinemaVault from './components/CinemaVault';
 import CommunityNexus from './components/CommunityNexus';
 import CyberBackdrop from './components/CyberBackdrop';
-import CyberSonicStage3D from './components/CyberSonicStage3D';
-import EngagementAnalytics from './components/EngagementAnalytics';
+import LazySection from './components/LazySection';
 import Footer from './components/Footer';
 import HeroStage from './components/HeroStage';
 import Navbar from './components/Navbar';
 import PillarsMatrix from './components/PillarsMatrix';
 import ShortsFeed from './components/ShortsFeed';
-import { CHANNEL_VIDEOS, LAST_5_TRACKS, type ChannelVideo } from './data/channel';
+import SpotlightPopular from './components/SpotlightPopular';
+import { type ChannelVideo } from './data/channel';
+import { useChannelVideos } from './utils/useChannelVideos';
 import { cyberAudio } from './utils/audioEngine';
+
+// Heavy sections (three.js stage, charts) load as separate chunks on demand.
+const CyberSonicStage3D = lazy(() => import('./components/CyberSonicStage3D'));
+const EngagementAnalytics = lazy(() => import('./components/EngagementAnalytics'));
 import {
   getInitialSnapshot,
   pollChannelTelemetry,
+  TELEMETRY_POLL_INTERVAL_MS,
   type LiveChannelSnapshot,
 } from './utils/telemetryPoller';
 
+const BOOT_SEEN_KEY = 'r4ag-boot-seen';
+
+// Skip the boot intro for campaign/referral traffic, repeat views this session, and reduced-motion users.
+function shouldSkipBoot(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('src') || params.has('utm_source')) return true;
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (window.sessionStorage.getItem(BOOT_SEEN_KEY)) return true;
+  } catch {
+    /* storage unavailable */
+  }
+  try {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 export default function App() {
-  const [bootComplete, setBootComplete] = useState(false);
+  const [bootComplete, setBootComplete] = useState(shouldSkipBoot);
+
+  // Live YouTube uploads (RSS via /api/videos) merged with curated metadata
+  const {
+    videos: channelVideos,
+    tracks: deckTracks,
+    shorts: liveShorts,
+    latestDrop,
+    isLive,
+    spotlight,
+    topVideo,
+    topShort,
+  } = useChannelVideos();
+  const deckTracksRef = useRef(deckTracks);
 
   // Synced Audio Deck (Last 5 Tracks) + Synthwave Background Loop State
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -31,7 +75,7 @@ export default function App() {
   const [externalPlayTick, setExternalPlayTick] = useState(0);
 
   // Cinema Vault & Modal State
-  const [activeVaultVideo, setActiveVaultVideo] = useState<ChannelVideo>(LAST_5_TRACKS[0]);
+  const [activeVaultVideo, setActiveVaultVideo] = useState<ChannelVideo>(deckTracks[0]);
   const [isPlayingInline, setIsPlayingInline] = useState(false);
   const [modalVideo, setModalVideo] = useState<ChannelVideo | null>(null);
 
@@ -61,7 +105,7 @@ export default function App() {
     void runPoll();
     const intervalId = window.setInterval(() => {
       void runPoll();
-    }, 3500);
+    }, TELEMETRY_POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;
@@ -74,10 +118,39 @@ export default function App() {
     setLiveMode((prev) => !prev);
   }, []);
 
-  const currentDeckTrack = LAST_5_TRACKS[currentTrackIndex] ?? LAST_5_TRACKS[0];
+  // Keep the selected deck track stable (by videoId) when the playlist refreshes; clamp otherwise.
+  useEffect(() => {
+    const prevTracks = deckTracksRef.current;
+    deckTracksRef.current = deckTracks;
+    if (prevTracks === deckTracks) return;
+    setCurrentTrackIndex((idx) => {
+      // Still on the (previous) latest drop: follow the new latest drop at slot 0.
+      if (idx === 0) return 0;
+      const prevId = prevTracks[idx]?.videoId;
+      const found = prevId ? deckTracks.findIndex((t) => t.videoId === prevId) : -1;
+      if (found !== -1) return found;
+      return Math.min(Math.max(idx, 0), deckTracks.length - 1);
+    });
+    setActiveVaultVideo((prev) =>
+      prev.videoId === prevTracks[0]?.videoId
+        ? deckTracks[0] ?? prev
+        : channelVideos.find((v) => v.videoId === prev.videoId) ?? prev
+    );
+  }, [deckTracks, channelVideos]);
+
+  const currentDeckTrack = deckTracks[currentTrackIndex] ?? deckTracks[0];
+  const marqueeTitles = useMemo(
+    () => channelVideos.filter((v) => v.isNew && !v.isShort).slice(0, 4).map((v) => v.shortTitle),
+    [channelVideos]
+  );
   const anyPlaybackActive = isDeckPlaying || isPlayingInline || modalVideo !== null;
 
   const handleBootComplete = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(BOOT_SEEN_KEY, '1');
+    } catch {
+      /* storage unavailable */
+    }
     setBootComplete(true);
   }, []);
 
@@ -117,13 +190,14 @@ export default function App() {
 
   const handleTrackIndexChange = useCallback((idx: number) => {
     setCurrentTrackIndex(idx);
-    setActiveVaultVideo(LAST_5_TRACKS[idx] ?? LAST_5_TRACKS[0]);
+    const list = deckTracksRef.current;
+    setActiveVaultVideo(list[idx] ?? list[0]);
   }, []);
 
   const handleSelectInlineVideo = (video: ChannelVideo, autoPlay = true) => {
     setActiveVaultVideo(video);
     setIsPlayingInline(autoPlay);
-    const matchingDeckIdx = LAST_5_TRACKS.findIndex((t) => t.videoId === video.videoId);
+    const matchingDeckIdx = deckTracks.findIndex((t) => t.videoId === video.videoId);
     if (matchingDeckIdx !== -1) {
       setCurrentTrackIndex(matchingDeckIdx);
     }
@@ -137,7 +211,7 @@ export default function App() {
     setActiveVaultVideo(video);
     setIsPlayingInline(false);
     setModalVideo(video);
-    const matchingDeckIdx = LAST_5_TRACKS.findIndex((t) => t.videoId === video.videoId);
+    const matchingDeckIdx = deckTracks.findIndex((t) => t.videoId === video.videoId);
     if (matchingDeckIdx !== -1) {
       setCurrentTrackIndex(matchingDeckIdx);
     }
@@ -147,16 +221,17 @@ export default function App() {
   };
 
   const handleNextModalTrack = () => {
-    const currentIndex = CHANNEL_VIDEOS.findIndex(
+    const currentIndex = channelVideos.findIndex(
       (v) => v.videoId === (modalVideo?.videoId ?? activeVaultVideo.videoId)
     );
-    const nextIndex = (currentIndex + 1) % CHANNEL_VIDEOS.length;
-    const nextVideo = CHANNEL_VIDEOS[nextIndex];
+    const nextIndex = (currentIndex + 1) % channelVideos.length;
+    const nextVideo = channelVideos[nextIndex];
     setActiveVaultVideo(nextVideo);
     setModalVideo(nextVideo);
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="relative min-h-screen bg-[#03050a] text-[#F8FAFC]">
       <CyberBackdrop isPlaying={anyPlaybackActive} />
 
@@ -170,6 +245,7 @@ export default function App() {
       <main className="relative z-10">
         <HeroStage
           currentDeckTrack={currentDeckTrack}
+          latestDrop={latestDrop}
           isDeckPlaying={isDeckPlaying}
           isPlaybackActive={anyPlaybackActive}
           isAudioMuted={isAudioMuted}
@@ -182,32 +258,45 @@ export default function App() {
           onOpenCinemaModal={handleOpenModal}
         />
 
-        <ChannelMarquee />
+        <ChannelMarquee titles={marqueeTitles} />
+
+        <SpotlightPopular
+          isLive={isLive}
+          spotlight={spotlight}
+          topVideo={topVideo}
+          topShort={topShort}
+          onPlay={handleOpenModal}
+        />
 
         <CinemaVault
           activeVideo={activeVaultVideo}
           isPlayingInline={isPlayingInline}
           onSelectInlineVideo={handleSelectInlineVideo}
           onOpenModal={handleOpenModal}
+          videos={channelVideos}
         />
 
-        <EngagementAnalytics
-          liveMode={liveMode}
-          isPolling={isPolling}
-          liveSnapshot={liveSnapshot}
-          onToggleLiveMode={handleToggleLiveMode}
-        />
+        <LazySection minHeight="720px" label="analytics" anchorId="analytics">
+          <EngagementAnalytics
+            liveMode={liveMode}
+            isPolling={isPolling}
+            liveSnapshot={liveSnapshot}
+            onToggleLiveMode={handleToggleLiveMode}
+          />
+        </LazySection>
 
-        <CyberSonicStage3D isPlaying={anyPlaybackActive} />
+        <LazySection minHeight="640px" label="sonic stage" anchorId="sonic-stage">
+          <CyberSonicStage3D isPlaying={anyPlaybackActive} />
+        </LazySection>
 
-        <ShortsFeed onOpenShort={handleOpenModal} />
+        <ShortsFeed onOpenShort={handleOpenModal} shorts={liveShorts} />
 
         <PillarsMatrix />
 
         <CommunityNexus />
       </main>
 
-      <div className="relative z-10">
+      <div className="relative z-10 max-md:pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <Footer />
       </div>
 
@@ -226,7 +315,9 @@ export default function App() {
         onMutedChange={setIsAudioMuted}
         onExpandCinema={handleOpenModal}
         externalPlayRequestTick={externalPlayTick}
+        tracks={deckTracks}
       />
     </div>
+    </MotionConfig>
   );
 }

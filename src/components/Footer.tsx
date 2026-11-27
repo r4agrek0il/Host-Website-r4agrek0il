@@ -1,4 +1,4 @@
-import { CHANNEL_PROFILE } from '../data/channel';
+import { CHANNEL_PROFILE, SUBSCRIBE_URL } from '../data/channel';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -17,21 +17,29 @@ export default function Footer() {
 
         <nav
           aria-label="Channel links"
-          className="flex flex-wrap items-center gap-6 text-xs font-medium text-slate-300"
+          className="flex flex-wrap items-center gap-6 max-md:gap-y-1 text-xs font-medium text-slate-300"
         >
           <a
             href={CHANNEL_PROFILE.urls.featured}
             target="_blank"
             rel="noopener noreferrer"
-            className="whitespace-nowrap transition-colors hover:text-[#00F0FF]"
+            className="whitespace-nowrap max-md:inline-flex max-md:min-h-10 max-md:items-center transition-colors hover:text-[#00F0FF]"
           >
             YouTube
+          </a>
+          <a
+            href={SUBSCRIBE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="whitespace-nowrap max-md:inline-flex max-md:min-h-10 max-md:items-center font-semibold text-[#FF7A00] transition-colors hover:text-[#FFB800]"
+          >
+            Subscribe
           </a>
           <a
             href={CHANNEL_PROFILE.urls.videos}
             target="_blank"
             rel="noopener noreferrer"
-            className="whitespace-nowrap transition-colors hover:text-[#00F0FF]"
+            className="whitespace-nowrap max-md:inline-flex max-md:min-h-10 max-md:items-center transition-colors hover:text-[#00F0FF]"
           >
             Videos
           </a>
@@ -39,7 +47,7 @@ export default function Footer() {
             href={CHANNEL_PROFILE.urls.shorts}
             target="_blank"
             rel="noopener noreferrer"
-            className="whitespace-nowrap transition-colors hover:text-[#00F0FF]"
+            className="whitespace-nowrap max-md:inline-flex max-md:min-h-10 max-md:items-center transition-colors hover:text-[#00F0FF]"
           >
             Shorts
           </a>
@@ -47,7 +55,7 @@ export default function Footer() {
             href={CHANNEL_PROFILE.urls.playlists}
             target="_blank"
             rel="noopener noreferrer"
-            className="whitespace-nowrap transition-colors hover:text-[#00F0FF]"
+            className="whitespace-nowrap max-md:inline-flex max-md:min-h-10 max-md:items-center transition-colors hover:text-[#00F0FF]"
           >
             Playlists
           </a>
@@ -55,7 +63,7 @@ export default function Footer() {
             href={CHANNEL_PROFILE.urls.instagram}
             target="_blank"
             rel="noopener noreferrer"
-            className="whitespace-nowrap transition-colors hover:text-[#FF7A00]"
+            className="whitespace-nowrap max-md:inline-flex max-md:min-h-10 max-md:items-center transition-colors hover:text-[#FF7A00]"
           >
             Instagram
           </a>

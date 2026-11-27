@@ -20,9 +20,13 @@ import {
 import { cyberAudio } from '../utils/audioEngine';
 import type { LiveChannelSnapshot } from '../utils/telemetryPoller';
 import MythicLogoSVG from './MythicLogoSVG';
+import { SUBSCRIBE_URL } from '../data/channel';
+import { nextSubscriberMilestone } from '../utils/telemetryPoller';
 
 interface HeroStageProps {
   currentDeckTrack: ChannelVideo;
+  /** Newest full video by published date ("Launch Latest Drop" target). */
+  latestDrop?: ChannelVideo;
   isDeckPlaying: boolean;
   isPlaybackActive?: boolean;
   isAudioMuted: boolean;
@@ -37,6 +41,7 @@ interface HeroStageProps {
 
 export default function HeroStage({
   currentDeckTrack,
+  latestDrop,
   isDeckPlaying,
   isPlaybackActive = false,
   isAudioMuted,
@@ -50,7 +55,7 @@ export default function HeroStage({
 }: HeroStageProps) {
   const [bannerError, setBannerError] = useState(false);
   const [processedBannerUrl, setProcessedBannerUrl] = useState<string>(
-    CHANNEL_PROFILE.bannerImage
+    CHANNEL_PROFILE.bannerImageWebp
   );
   const [avatarError, setAvatarError] = useState(false);
   const [bannerMode, setBannerMode] = useState<'mythic' | 'original'>('mythic');
@@ -67,7 +72,13 @@ export default function HeroStage({
     let cancelled = false;
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.src = CHANNEL_PROFILE.bannerImage;
+    // Prefer the light WebP; fall back to the original PNG if it fails.
+    img.onerror = () => {
+      if (cancelled || img.src.endsWith('.png')) return;
+      setProcessedBannerUrl(CHANNEL_PROFILE.bannerImage);
+      img.src = CHANNEL_PROFILE.bannerImage;
+    };
+    img.src = CHANNEL_PROFILE.bannerImageWebp;
 
     img.onload = () => {
       if (cancelled) return;
@@ -315,7 +326,7 @@ export default function HeroStage({
               <button
                 type="button"
                 onClick={() => setBannerMode('mythic')}
-                className={`inline-flex min-h-[28px] items-center gap-1 rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold transition-colors ${
+                className={`inline-flex min-h-[28px] max-md:min-h-10 items-center gap-1 rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold transition-colors ${
                   bannerMode === 'mythic'
                     ? 'bg-[#00F0FF] text-[#04071A]'
                     : 'text-slate-300 hover:text-white'
@@ -327,7 +338,7 @@ export default function HeroStage({
               <button
                 type="button"
                 onClick={() => setBannerMode('original')}
-                className={`inline-flex min-h-[28px] items-center gap-1 rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold transition-colors ${
+                className={`inline-flex min-h-[28px] max-md:min-h-10 items-center gap-1 rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold transition-colors ${
                   bannerMode === 'original'
                     ? 'bg-[#FF7B00] text-[#04071A]'
                     : 'text-slate-300 hover:text-white'
@@ -360,13 +371,17 @@ export default function HeroStage({
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-[#00F0FF]/30 bg-[#04071A] sm:h-20 sm:w-20">
                     {!avatarError ? (
+                      <picture className="contents">
+                        <source srcSet={CHANNEL_PROFILE.avatarImageWebp} type="image/webp" />
                       <img
                         src={CHANNEL_PROFILE.avatarImage}
                         alt="R4agRek0il Cyan 4 emblem"
                         referrerPolicy="no-referrer"
+                        decoding="async"
                         onError={() => setAvatarError(true)}
                         className="h-full w-full object-cover"
                       />
+                      </picture>
                     ) : (
                       <div className="flex h-full w-full items-center justify-center font-display text-2xl font-bold text-[#00F0FF]">
                         4
@@ -440,13 +455,23 @@ export default function HeroStage({
             </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a
+                href={SUBSCRIBE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-[#FF7B00] px-5 py-2.5 text-sm font-semibold text-[#04071A] whitespace-nowrap shrink-0 shadow-[0_0_24px_rgba(255,123,0,0.35)] transition-colors duration-150 hover:bg-[#FFB800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+              >
+                <span>Subscribe on YouTube</span>
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+
               <button
                 type="button"
                 onClick={() => {
                   cyberAudio.playUiPulse(820);
-                  onOpenCinemaModal(currentDeckTrack);
+                  onOpenCinemaModal(latestDrop ?? currentDeckTrack);
                 }}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-[#FF7B00] px-5 py-2.5 text-sm font-semibold text-[#04071A] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FFB800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[#FF7B00]/45 bg-[#FF7B00]/10 px-4 py-2.5 text-sm font-semibold text-[#FF7B00] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FF7B00]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
               >
                 <Play className="h-4 w-4 fill-current" />
                 <span>Launch Latest Drop</span>
@@ -460,15 +485,6 @@ export default function HeroStage({
                 <span>Explore Neon Nights</span>
               </a>
 
-              <a
-                href={CHANNEL_PROFILE.urls.subscribe}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
-              >
-                <span>Subscribe on YouTube</span>
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
             </div>
           </div>
 
@@ -545,16 +561,20 @@ export default function HeroStage({
               />
 
               {!avatarError ? (
+                <picture className="contents">
+                  <source srcSet={CHANNEL_PROFILE.avatarImageWebp} type="image/webp" />
                 <img
                   src={CHANNEL_PROFILE.avatarImage}
                   alt="R4agRek0il glowing Cyan 4 with orange headphone coil"
                   referrerPolicy="no-referrer"
+                  decoding="async"
                   onError={() => setAvatarError(true)}
                   style={{
                     filter: 'drop-shadow(0 0 18px rgba(0, 240, 255, 0.25))',
                   }}
                   className="relative z-10 h-44 w-44 rounded-2xl object-contain sm:h-48 sm:w-48"
                 />
+                </picture>
               ) : (
                 <div className="relative z-10 flex h-44 w-44 items-center justify-center rounded-2xl bg-[#04071A] font-display text-6xl font-bold text-[#00F0FF]">
                   4
@@ -614,7 +634,7 @@ export default function HeroStage({
               role="switch"
               aria-checked={liveMode}
               onClick={onToggleLiveMode}
-              className={`inline-flex min-h-[34px] items-center gap-2 rounded-lg border px-3 py-1 font-mono text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF] ${
+              className={`inline-flex min-h-[34px] max-md:min-h-10 items-center gap-2 rounded-lg border px-3 py-1 font-mono text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF] ${
                 liveMode
                   ? 'border-[#00F0FF]/60 bg-[#00F0FF]/15 text-[#00F0FF]'
                   : 'border-white/15 bg-[#04071A] text-slate-300 hover:text-white'
@@ -648,7 +668,9 @@ export default function HeroStage({
                 )}
               </div>
               <p className="mt-1.5 font-display text-2xl font-bold text-white tabular-nums">
-                {liveMode ? liveSnapshot.subscribers.toLocaleString() : '204+'}
+                {liveMode
+                  ? liveSnapshot.subscribers.toLocaleString()
+                  : `${(liveSnapshot.subscribers || 206).toLocaleString()}+`}
                 {liveMode && liveSnapshot.deltaSubs > 0 && (
                   <span className="ml-2 font-mono text-xs font-medium text-[#00F0FF]">
                     +{liveSnapshot.deltaSubs}
@@ -658,6 +680,28 @@ export default function HeroStage({
               <p className="mt-1 text-xs leading-relaxed text-slate-400">
                 Growing community across YouTube &amp; Instagram
               </p>
+              {(() => {
+                const subs = liveSnapshot.subscribers || 206;
+                const goal = nextSubscriberMilestone(subs);
+                const pct = Math.min(100, Math.round((subs / goal) * 100));
+                return (
+                  <a
+                    href={SUBSCRIBE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 block max-md:py-2 group"
+                    aria-label={`Help me hit ${goal} subscribers: ${subs} of ${goal}`}
+                  >
+                    <div className="flex items-center justify-between font-mono text-[10px] text-slate-400 group-hover:text-[#FFB800]">
+                      <span>Help me hit {goal.toLocaleString()} subscribers</span>
+                      <span className="tabular-nums">{pct}%</span>
+                    </div>
+                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={goal} aria-valuenow={subs}>
+                      <div className="h-full rounded-full bg-gradient-to-r from-[#00F0FF] to-[#FFB800] transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </a>
+                );
+              })()}
             </div>
 
             <div className="bg-[#04071A]/95 p-5 sm:p-6">

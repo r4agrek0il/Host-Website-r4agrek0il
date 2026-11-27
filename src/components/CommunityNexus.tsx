@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { ArrowUpRight, Check, Copy, Send } from 'lucide-react';
-import { CHANNEL_PROFILE, NEON_NIGHTS_PLAYLIST } from '../data/channel';
+import { ArrowUpRight, Check, Copy, Send, Share2 } from 'lucide-react';
+import { CHANNEL_PROFILE, NEON_NIGHTS_PLAYLIST, SUBSCRIBE_URL } from '../data/channel';
+import { shareLink } from '../utils/share';
+
+const INSTAGRAM_DM_URL = 'https://ig.me/m/r4agrek0il';
 import { cyberAudio } from '../utils/audioEngine';
 
 export default function CommunityNexus() {
@@ -10,10 +13,18 @@ export default function CommunityNexus() {
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [messageCopied, setMessageCopied] = useState(false);
+
+  const handleShareChannel = async () => {
+    const result = await shareLink(SUBSCRIBE_URL, `${CHANNEL_PROFILE.name} on YouTube`);
+    setShareStatus(result === 'copied' ? 'Link Copied' : result === 'shared' ? 'Shared' : null);
+    window.setTimeout(() => setShareStatus(null), 2000);
+  };
 
   const handleCopyChannel = async () => {
     try {
-      await navigator.clipboard.writeText(CHANNEL_PROFILE.urls.featured);
+      await navigator.clipboard.writeText(SUBSCRIBE_URL);
       setCopiedUrl(true);
       window.setTimeout(() => setCopiedUrl(false), 2000);
     } catch {
@@ -28,6 +39,13 @@ export default function CommunityNexus() {
       return;
     }
     setFormError(null);
+    // Open the DM window synchronously (popup blockers), then copy the note for pasting.
+    window.open(INSTAGRAM_DM_URL, '_blank', 'noopener,noreferrer');
+    const composed = `[${topic}] from ${name.trim()}\n\n${message.trim()}`;
+    navigator.clipboard
+      ?.writeText(composed)
+      .then(() => setMessageCopied(true))
+      .catch(() => setMessageCopied(false));
     setSubmitted(true);
     cyberAudio.playUiPulse(820);
   };
@@ -100,6 +118,14 @@ export default function CommunityNexus() {
                   </>
                 )}
               </button>
+              <button
+                type="button"
+                onClick={handleShareChannel}
+                className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-[#00F0FF]/35 bg-[#00F0FF]/10 px-4 py-2 text-sm font-medium text-[#00F0FF] transition-colors hover:bg-[#00F0FF]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+              >
+                <Share2 className="h-4 w-4" />
+                <span>{shareStatus ?? 'Share Channel'}</span>
+              </button>
             </div>
           </div>
 
@@ -120,12 +146,12 @@ export default function CommunityNexus() {
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-300">
                   Thanks, <span className="font-semibold text-white">{name}</span>. Your{' '}
-                  <span className="text-[#FFB800]">{topic}</span> note is ready. You can also reach out directly via YouTube or Instagram DM on{' '}
+                  <span className="text-[#FFB800]">{topic}</span> note {messageCopied ? 'was copied to your clipboard — paste it into the Instagram DM that just opened.' : 'is ready — paste it into the Instagram DM.'} You can also reach out directly via YouTube or Instagram DM on{' '}
                   <span className="font-mono text-white">@r4agrek0il</span>.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <a
-                    href={CHANNEL_PROFILE.urls.instagram}
+                    href={INSTAGRAM_DM_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-[#FF7A00] px-4 py-2 text-xs font-semibold text-[#04071A] hover:bg-[#FFB800]"
@@ -207,6 +233,9 @@ export default function CommunityNexus() {
                   <Send className="h-4 w-4" />
                   <span>Send Message</span>
                 </button>
+                <p className="font-mono text-[11px] text-slate-400">
+                  Sends via Instagram DM — your note is copied to the clipboard and an Instagram chat with @r4agrek0il opens in a new tab.
+                </p>
               </form>
             )}
           </div>

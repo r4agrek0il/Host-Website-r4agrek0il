@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowUpRight, Play } from 'lucide-react';
 import {
   CHANNEL_PROFILE,
@@ -8,31 +8,58 @@ import {
 } from '../data/channel';
 import { cyberAudio } from '../utils/audioEngine';
 import ReleaseArtwork from './ReleaseArtwork';
+import SubscribeButton from './SubscribeButton';
 
 interface ShortsFeedProps {
   onOpenShort: (video: ChannelVideo) => void;
+  /** Live shorts list (newest first); slots fall back to curated highlights. */
+  shorts?: ChannelVideo[];
 }
 
-const SHORTS_HIGHLIGHTS = [
+interface ShortsSlot {
+  video: ChannelVideo;
+  hook: string;
+  format: string;
+}
+
+const SHORTS_HIGHLIGHTS: ShortsSlot[] = [
   {
     video: CHANNEL_VIDEOS.find((v) => v.videoId === 'QIV-N_7nPcE') ?? CHANNEL_VIDEOS[5],
     hook: 'Bring the Light — Vertical EDM Hook',
     format: '9:16 Vertical Drop',
   },
   {
-    video: CHANNEL_VIDEOS[0],
+    video: CHANNEL_VIDEOS.find((v) => v.videoId === 'SoZfGOnwQXA') ?? CHANNEL_VIDEOS[0],
     hook: 'Not Dancing — Kinetic Cut Highlight',
     format: 'Animation Loop',
   },
   {
-    video: CHANNEL_VIDEOS[1],
+    video: CHANNEL_VIDEOS.find((v) => v.videoId === 'h20rZi9OxbM') ?? CHANNEL_VIDEOS[1],
     hook: 'Lost the Count — Synth Pulse Cut',
     format: 'Breakout Teaser',
   },
 ];
 
-export default function ShortsFeed({ onOpenShort }: ShortsFeedProps) {
+// Newest Shorts first. The curated highlight slots (Wake the Night short pinned first)
+// are used only when there are no Shorts at all, or to fill remaining slots.
+function buildSlots(shorts: ChannelVideo[] | undefined): ShortsSlot[] {
+  if (!shorts || shorts.length === 0) return SHORTS_HIGHLIGHTS;
+  const slots = shorts.slice(0, SHORTS_HIGHLIGHTS.length).map<ShortsSlot>((v) => {
+    const curated = SHORTS_HIGHLIGHTS.find((h) => h.video.videoId === v.videoId);
+    return curated
+      ? { ...curated, video: v }
+      : { video: v, hook: v.shortTitle, format: v.isNew ? 'New Vertical Drop' : '9:16 Vertical Drop' };
+  });
+  for (const fallback of SHORTS_HIGHLIGHTS) {
+    if (slots.length >= SHORTS_HIGHLIGHTS.length) break;
+    if (!slots.some((s) => s.video.videoId === fallback.video.videoId)) slots.push(fallback);
+  }
+  return slots;
+}
+
+export default function ShortsFeed({ onOpenShort, shorts }: ShortsFeedProps) {
   const [failedThumbs, setFailedThumbs] = useState<Record<string, boolean>>({});
+  const slots = useMemo(() => buildSlots(shorts), [shorts]);
 
   return (
     <section id="shorts" className="border-t border-white/10 bg-[#04071A]/50 py-16 sm:py-20">
@@ -57,11 +84,12 @@ export default function ShortsFeed({ onOpenShort }: ShortsFeedProps) {
             <span>Open All Shorts</span>
             <ArrowUpRight className="h-4 w-4" />
           </a>
+          <SubscribeButton size="sm" className="shrink-0" />
         </div>
 
         {/* Horizontal 9:16 Showcase Grid */}
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {SHORTS_HIGHLIGHTS.map((item, idx) => {
+          {slots.map((item, idx) => {
             const thumbKey = `${item.video.videoId}-${idx}`;
             return (
               <button
@@ -76,6 +104,10 @@ export default function ShortsFeed({ onOpenShort }: ShortsFeedProps) {
                 {!failedThumbs[thumbKey] ? (
                   <img
                     src={getYouTubeThumbnailUrl(item.video.videoId)}
+                    width={480}
+                    height={360}
+                    loading="lazy"
+                    decoding="async"
                     alt={item.hook}
                     referrerPolicy="no-referrer"
                     onError={() =>

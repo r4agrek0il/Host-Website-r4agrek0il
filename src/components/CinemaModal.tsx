@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, ExternalLink, SkipForward, X } from 'lucide-react';
+import SubscribeButton from './SubscribeButton';
 import { getYouTubeWatchUrl, type ChannelVideo } from '../data/channel';
 
 interface CinemaModalProps {
@@ -118,6 +119,8 @@ export default function CinemaModal({ video, onClose, onNext }: CinemaModalProps
               <span>Open on YouTube</span>
               <ExternalLink className="h-4 w-4" />
             </a>
+
+            <SubscribeButton />
 
             <button
               type="button"

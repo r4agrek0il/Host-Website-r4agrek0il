@@ -18,6 +18,9 @@ export interface ChannelVideo {
   inNeonNights?: boolean;
   accentTone: 'cyan' | 'orange' | 'dual';
   waveformSeed: number;
+  publishedAt?: string;
+  isNew?: boolean;
+  views?: number | null;
 }
 
 export interface ChannelPillar {
@@ -40,6 +43,9 @@ export interface DailyEngagementPoint {
   milestone?: string;
 }
 
+export const SUBSCRIBE_URL =
+  'https://www.youtube.com/channel/UCdyybiezt4xZHtGVdx_nzYQ?sub_confirmation=1';
+
 export const CHANNEL_PROFILE = {
   name: 'R4agRek0il',
   handle: '@R4agRek0il',
@@ -50,12 +56,15 @@ export const CHANNEL_PROFILE = {
     'Official audiovisual command hub for R4agRek0il — original animated music videos, epic EDM lyric visuals, Neon Nights synthwave mixes, and high-impact Shorts.',
   bannerImage: '/assets/aistudio/Logo_R4agRek0il_f73e43e3.png',
   avatarImage: '/assets/aistudio/Cyan_4_with_orange_headphone_coil_05909869.png',
+  // Lightweight WebP twins (PNG originals kept as fallback).
+  bannerImageWebp: '/assets/aistudio/Logo_R4agRek0il_f73e43e3.webp',
+  avatarImageWebp: '/assets/aistudio/Cyan_4_with_orange_headphone_coil_05909869.webp',
   urls: {
     featured: 'https://www.youtube.com/@R4agRek0il/featured',
     videos: 'https://www.youtube.com/@R4agRek0il/videos',
     shorts: 'https://www.youtube.com/@R4agRek0il/shorts',
     playlists: 'https://www.youtube.com/@R4agRek0il/playlists',
-    subscribe: 'https://www.youtube.com/@R4agRek0il?sub_confirmation=1',
+    subscribe: SUBSCRIBE_URL,
     instagram: 'https://www.instagram.com/r4agrek0il/',
   },
 } as const;
@@ -63,7 +72,7 @@ export const CHANNEL_PROFILE = {
 export const CHANNEL_METRICS = [
   {
     label: 'Subscribers',
-    value: '204+',
+    value: '206+',
     detail: 'Growing community across YouTube & Instagram',
   },
   {
@@ -83,10 +92,30 @@ export const CHANNEL_METRICS = [
   },
 ] as const;
 
-// Exact 5 latest tracks in newest-to-oldest order for the R4agRek0il Audio Deck
+// Curated tracks (deck shows the 5 newest by publishedAt) for the R4agRek0il Audio Deck
 export const LAST_5_TRACKS: ChannelVideo[] = [
   {
+    id: 'pretty-circles',
+    videoId: 'fxQiWP4OFiM',
+    index: '06',
+    title: 'Pretty Circles — R4agRek0il | Official Music Video',
+    shortTitle: 'Pretty Circles',
+    category: 'animated-mv',
+    categoryLabel: 'Animated MV',
+    genre: 'Electronic Pop',
+    moodTags: ['New Release', 'Hypnotic Loops', 'Neon Glow'],
+    duration: '03:00',
+    releaseNote: 'Latest Drop',
+    storyNote:
+      'Fresh release looping hypnotic synth circles through glowing neon visuals in the signature R4agRek0il style.',
+    inNeonNights: true,
+    accentTone: 'orange',
+    waveformSeed: 33,
+    publishedAt: '2026-11-27T00:00:00Z',
+  },
+  {
     id: 'not-dancing',
+    publishedAt: '2026-11-22T00:00:00Z',
     videoId: 'SoZfGOnwQXA',
     index: '01',
     title: 'Not Dancing – R4agRek0il | Official Animated Music Video',
@@ -96,7 +125,7 @@ export const LAST_5_TRACKS: ChannelVideo[] = [
     genre: 'Electronic Pop',
     moodTags: ['Kinetic Rhythm', 'Nightlife Pulse', 'Animated Storytelling'],
     duration: '03:18',
-    releaseNote: 'Latest Drop',
+    releaseNote: 'Official Release',
     storyNote:
       'Pairs kinetic rhythm cuts with expressive animated motion and nocturnal lighting, anchoring the flagship R4agRek0il visual style.',
     inNeonNights: true,
@@ -105,6 +134,7 @@ export const LAST_5_TRACKS: ChannelVideo[] = [
   },
   {
     id: 'make-it-hard-to-leave',
+    publishedAt: '2026-11-18T00:00:00Z',
     videoId: 'Nrp7AcQIkWU',
     index: '02',
     title: 'Make It Hard to Leave — R4agRek0il | Official Music Video',
@@ -123,6 +153,7 @@ export const LAST_5_TRACKS: ChannelVideo[] = [
   },
   {
     id: 'what-if-i-dont',
+    publishedAt: '2026-11-14T00:00:00Z',
     videoId: 'sm_sXx6Ek2E',
     index: '03',
     title: "What If I Don't? | Official Animated Music Video — R4agRek0il",
@@ -140,6 +171,7 @@ export const LAST_5_TRACKS: ChannelVideo[] = [
   },
   {
     id: 'lost-the-count',
+    publishedAt: '2026-11-09T00:00:00Z',
     videoId: 'h20rZi9OxbM',
     index: '04',
     title: 'Lost the Count | Official Animated Music Video — R4agRek0il',
@@ -301,4 +333,163 @@ export function getYouTubeWatchUrl(videoId: string, isShort?: boolean): string {
   return isShort
     ? `https://www.youtube.com/shorts/${videoId}`
     : `https://www.youtube.com/watch?v=${videoId}`;
+}
+
+// ---------------------------------------------------------------------------
+// Auto-sync: live YouTube RSS uploads merged with curated metadata
+// ---------------------------------------------------------------------------
+
+/**
+ * Legacy promoted id. Kept for reference only — it no longer affects ordering.
+ * "Latest Drop" is always computed from published dates (see pickLatestDrop).
+ */
+export const FEATURED_VIDEO_ID = 'sm_sXx6Ek2E';
+
+export const NEW_BADGE_WINDOW_DAYS = 7;
+/** Maximum NEW badges per list (full videos and Shorts are capped separately). */
+export const NEW_BADGE_MAX = 2;
+export const LATEST_DROP_NOTE = 'Latest Drop';
+export const NEUTRAL_RELEASE_NOTE = 'Official Release';
+
+export interface RssVideoEntry {
+  videoId: string;
+  title: string;
+  published: string;
+  views: number | null;
+  description: string;
+  isShort: boolean;
+}
+
+const ACCENT_TONES: ChannelVideo['accentTone'][] = ['cyan', 'orange', 'dual'];
+
+function seedFromId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return (h % 97) + 1;
+}
+
+function deriveShortTitle(title: string): string {
+  const cleaned = title
+    .replace(/#\S+/g, '')
+    .split(/\s[|–—]\s/)[0]
+    .trim();
+  return cleaned || title;
+}
+
+export function isRecentlyPublished(
+  publishedAt: string | undefined,
+  now: number = Date.now(),
+  windowDays: number = NEW_BADGE_WINDOW_DAYS
+): boolean {
+  if (!publishedAt) return false;
+  const t = Date.parse(publishedAt);
+  if (!Number.isFinite(t)) return false;
+  return now - t >= -60_000 && now - t <= windowDays * 86_400_000;
+}
+
+export function rssToChannelVideo(entry: RssVideoEntry, index: number): ChannelVideo {
+  const isShort = Boolean(entry.isShort);
+  return {
+    id: `yt-${entry.videoId}`,
+    videoId: entry.videoId,
+    index: String(index + 1).padStart(2, '0'),
+    title: entry.title,
+    shortTitle: deriveShortTitle(entry.title),
+    category: isShort ? 'shorts' : 'animated-mv',
+    categoryLabel: isShort ? 'YouTube Shorts' : 'New Upload',
+    genre: isShort ? 'Vertical Drop' : 'Original Release',
+    moodTags: isShort ? ['9:16 Vertical', 'Fresh Upload'] : ['Fresh Upload', 'R4agRek0il Original'],
+    duration: '',
+    releaseNote: isShort ? 'Vertical Transmission' : 'Fresh Upload',
+    storyNote: entry.description || 'Fresh transmission from the R4agRek0il channel.',
+    isShort: isShort || undefined,
+    accentTone: ACCENT_TONES[index % ACCENT_TONES.length],
+    waveformSeed: seedFromId(entry.videoId),
+    publishedAt: entry.published || undefined,
+    views: entry.views,
+  };
+}
+
+function publishedMs(v: ChannelVideo): number | null {
+  if (!v.publishedAt) return null;
+  const t = Date.parse(v.publishedAt);
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * Curated metadata wins for known ids (enriched with publishedAt/views from RSS).
+ * Everything with a published date is sorted newest-first; curated items missing
+ * from the feed (older than the RSS window) follow in curated order.
+ * Display index: full videos and Shorts are numbered chronologically per list
+ * (oldest = 01), so existing numbers never shift when a new upload lands.
+ */
+export function mergeVideos(rss: RssVideoEntry[], curated: ChannelVideo[]): ChannelVideo[] {
+  const rssById = new Map<string, RssVideoEntry>();
+  for (const e of rss) if (e?.videoId && !rssById.has(e.videoId)) rssById.set(e.videoId, e);
+  const curatedIds = new Set(curated.map((v) => v.videoId));
+
+  const dated: ChannelVideo[] = [];
+  const undated: ChannelVideo[] = [];
+  const seen = new Set<string>();
+  for (const v of curated) {
+    if (seen.has(v.videoId)) continue;
+    seen.add(v.videoId);
+    const live = rssById.get(v.videoId);
+    const merged = live
+      ? { ...v, publishedAt: live.published || v.publishedAt, views: live.views ?? v.views }
+      : v;
+    (publishedMs(merged) !== null ? dated : undated).push(merged);
+  }
+  let i = 0;
+  for (const e of rssById.values()) {
+    if (curatedIds.has(e.videoId)) continue;
+    const v = rssToChannelVideo(e, i++);
+    (publishedMs(v) !== null ? dated : undated).push(v);
+  }
+  dated.sort((a, b) => (publishedMs(b) ?? 0) - (publishedMs(a) ?? 0));
+  const ordered = [...dated, ...undated];
+
+  const renumber = (list: ChannelVideo[]) => {
+    const n = list.length;
+    return new Map(list.map((v, idx) => [v.videoId, String(n - idx).padStart(2, '0')]));
+  };
+  const fullIdx = renumber(ordered.filter((v) => !v.isShort));
+  const shortIdx = renumber(ordered.filter((v) => v.isShort));
+  return ordered.map((v) => ({
+    ...v,
+    index: (v.isShort ? shortIdx : fullIdx).get(v.videoId) ?? v.index,
+  }));
+}
+
+/** Newest non-Short video in a newest-first list (falls back to the first item). */
+export function pickLatestDrop(videos: ChannelVideo[]): ChannelVideo | undefined {
+  return videos.find((v) => !v.isShort) ?? videos[0];
+}
+
+/** Only the actual newest full video carries the "Latest Drop" note. */
+export function applyLatestDropNote(videos: ChannelVideo[], latestId: string | undefined): ChannelVideo[] {
+  return videos.map((v) => {
+    if (v.videoId === latestId) return v.releaseNote === LATEST_DROP_NOTE ? v : { ...v, releaseNote: LATEST_DROP_NOTE };
+    if (v.releaseNote === LATEST_DROP_NOTE) return { ...v, releaseNote: NEUTRAL_RELEASE_NOTE };
+    return v;
+  });
+}
+
+/** NEW badge: within the window, newest first, at most `max` full videos and `max` Shorts. */
+export function applyNewBadges(
+  videos: ChannelVideo[],
+  now: number = Date.now(),
+  max: number = NEW_BADGE_MAX
+): ChannelVideo[] {
+  let full = 0;
+  let shorts = 0;
+  return videos.map((v) => {
+    const { isNew: _drop, ...rest } = v;
+    void _drop;
+    if (!isRecentlyPublished(v.publishedAt, now)) return rest;
+    if (v.isShort ? shorts >= max : full >= max) return rest;
+    if (v.isShort) shorts++;
+    else full++;
+    return { ...rest, isNew: true };
+  });
 }
