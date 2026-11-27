@@ -8,6 +8,7 @@ export interface StatVideo {
   published: string;
   views: number | null;
   isShort?: boolean;
+  title?: string;
 }
 
 export interface Snapshot {
@@ -69,13 +70,14 @@ export function computeSpotlight(
   pinnedId?: string | null
 ): Spotlight | null {
   const pinned = pinnedId?.trim();
-  if (pinned && videos.some((v) => v.videoId === pinned)) return { videoId: pinned, reason: 'pinned' };
+  if (pinned) return { videoId: pinned, reason: 'pinned' };
 
   const base = snapshots ? pickBaseline(snapshots, now) : null;
   if (base) {
     let top: { id: string; gained: number } | null = null;
     for (const v of videos) {
-      const before = base.views[v.videoId];
+      const pub = Date.parse(v.published);
+      const before = base.views[v.videoId] ?? (Number.isFinite(pub) && pub > base.t ? 0 : undefined);
       if (typeof v.views !== 'number' || typeof before !== 'number') continue;
       const gained = v.views - before;
       if (!top || gained > top.gained) top = { id: v.videoId, gained };
@@ -108,5 +110,5 @@ export function computePopular(videos: StatVideo[]): Popular {
       .filter((v) => typeof v.views === 'number')
       .reduce<StatVideo | null>((m, v) => (!m || (v.views as number) > (m.views as number) ? v : m), null)
       ?.videoId ?? null;
-  return { topVideoId: top(videos.filter((v) => !v.isShort)), topShortId: top(videos.filter((v) => v.isShort)) };
+  return { topVideoId: top(videos.filter((v) => !v.isShort && !/#shorts?\b/i.test(v.title ?? ''))), topShortId: top(videos.filter((v) => v.isShort)) };
 }

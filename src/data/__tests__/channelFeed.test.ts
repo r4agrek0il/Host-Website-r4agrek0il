@@ -95,13 +95,15 @@ describe('mergeVideos', () => {
   it('curated metadata wins; everything sorted newest-first; undated curated last; deduped', () => {
     const older = { ...sample, videoId: 'olderolder1', published: '2026-11-01T00:00:00Z' };
     const curatedEcho = { ...sample, videoId: 'SoZfGOnwQXA', title: 'RSS title', published: '2026-11-10T00:00:00Z' };
-    const merged = mergeVideos([older, sample, curatedEcho, sample], CHANNEL_VIDEOS);
+    // strip curated dates so this exercises the undated-curated path
+    const undated = CHANNEL_VIDEOS.map((v) => ({ ...v, publishedAt: undefined }));
+    const merged = mergeVideos([older, sample, curatedEcho, sample], undated);
     expect(merged.slice(0, 3).map((v) => v.videoId)).toEqual([sample.videoId, 'SoZfGOnwQXA', 'olderolder1']);
     expect(merged.slice(3).map((v) => v.videoId)).toEqual(
       CHANNEL_VIDEOS.filter((v) => v.videoId !== 'SoZfGOnwQXA').map((v) => v.videoId)
     );
     const curated = merged.find((v) => v.videoId === 'SoZfGOnwQXA');
-    expect(curated?.title).toBe(LAST_5_TRACKS[0].title);
+    expect(curated?.title).toBe(CHANNEL_VIDEOS.find((v) => v.videoId === 'SoZfGOnwQXA')?.title);
     expect(curated?.publishedAt).toBe(curatedEcho.published);
     expect(new Set(merged.map((v) => v.videoId)).size).toBe(merged.length);
   });
@@ -127,8 +129,8 @@ describe('buildChannelState', () => {
   it('fallback: newest curated full video first, unchanged curated behaviour', () => {
     const s = buildChannelState(null);
     expect(s.isLive).toBe(false);
-    expect(s.latestDrop.videoId).toBe('SoZfGOnwQXA');
-    expect(s.tracks.map((v) => v.videoId)).toEqual(LAST_5_TRACKS.map((v) => v.videoId));
+    expect(s.latestDrop.videoId).toBe('fxQiWP4OFiM');
+    expect(s.tracks.map((v) => v.videoId)).toEqual(LAST_5_TRACKS.slice(0, 5).map((v) => v.videoId));
     expect(s.tracks[0].releaseNote).toBe('Latest Drop');
     expect(s.shorts.map((v) => v.videoId)).toEqual(['QIV-N_7nPcE']);
   });

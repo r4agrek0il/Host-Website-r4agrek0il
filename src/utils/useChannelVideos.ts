@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   CHANNEL_VIDEOS,
-  LAST_5_TRACKS,
   applyLatestDropNote,
   applyNewBadges,
   mergeVideos,
@@ -46,13 +45,11 @@ export function buildChannelState(
   picks: ApiPicks = {}
 ): ChannelVideosState {
   const live = Boolean(rss && rss.length > 0);
-  const merged = live ? mergeVideos(rss as RssVideoEntry[], CHANNEL_VIDEOS) : CHANNEL_VIDEOS;
+  const merged = mergeVideos(live ? (rss as RssVideoEntry[]) : [], CHANNEL_VIDEOS);
   const latestId = pickLatestDrop(merged)?.videoId;
   const videos = applyNewBadges(applyLatestDropNote(merged, latestId), now);
   const full = videos.filter((v) => !v.isShort);
-  const tracks = live
-    ? full.slice(0, 5)
-    : LAST_5_TRACKS.map((t) => full.find((v) => v.videoId === t.videoId) ?? t);
+  const tracks = full.slice(0, 5);
   const shorts = videos.filter((v) => v.isShort);
   const byId = (id: string | null | undefined) => (live && id ? videos.find((v) => v.videoId === id) ?? null : null);
   const sp = picks.spotlight;

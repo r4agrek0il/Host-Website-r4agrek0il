@@ -92,10 +92,30 @@ export const CHANNEL_METRICS = [
   },
 ] as const;
 
-// Exact 5 latest tracks in newest-to-oldest order for the R4agRek0il Audio Deck
+// Curated tracks (deck shows the 5 newest by publishedAt) for the R4agRek0il Audio Deck
 export const LAST_5_TRACKS: ChannelVideo[] = [
   {
+    id: 'pretty-circles',
+    videoId: 'fxQiWP4OFiM',
+    index: '06',
+    title: 'Pretty Circles — R4agRek0il | Official Music Video',
+    shortTitle: 'Pretty Circles',
+    category: 'animated-mv',
+    categoryLabel: 'Animated MV',
+    genre: 'Electronic Pop',
+    moodTags: ['New Release', 'Hypnotic Loops', 'Neon Glow'],
+    duration: '03:00',
+    releaseNote: 'Latest Drop',
+    storyNote:
+      'Fresh release looping hypnotic synth circles through glowing neon visuals in the signature R4agRek0il style.',
+    inNeonNights: true,
+    accentTone: 'orange',
+    waveformSeed: 33,
+    publishedAt: '2026-11-27T00:00:00Z',
+  },
+  {
     id: 'not-dancing',
+    publishedAt: '2026-11-22T00:00:00Z',
     videoId: 'SoZfGOnwQXA',
     index: '01',
     title: 'Not Dancing – R4agRek0il | Official Animated Music Video',
@@ -105,7 +125,7 @@ export const LAST_5_TRACKS: ChannelVideo[] = [
     genre: 'Electronic Pop',
     moodTags: ['Kinetic Rhythm', 'Nightlife Pulse', 'Animated Storytelling'],
     duration: '03:18',
-    releaseNote: 'Latest Drop',
+    releaseNote: 'Official Release',
     storyNote:
       'Pairs kinetic rhythm cuts with expressive animated motion and nocturnal lighting, anchoring the flagship R4agRek0il visual style.',
     inNeonNights: true,
@@ -114,6 +134,7 @@ export const LAST_5_TRACKS: ChannelVideo[] = [
   },
   {
     id: 'make-it-hard-to-leave',
+    publishedAt: '2026-11-18T00:00:00Z',
     videoId: 'Nrp7AcQIkWU',
     index: '02',
     title: 'Make It Hard to Leave — R4agRek0il | Official Music Video',
@@ -132,6 +153,7 @@ export const LAST_5_TRACKS: ChannelVideo[] = [
   },
   {
     id: 'what-if-i-dont',
+    publishedAt: '2026-11-14T00:00:00Z',
     videoId: 'sm_sXx6Ek2E',
     index: '03',
     title: "What If I Don't? | Official Animated Music Video — R4agRek0il",
@@ -149,6 +171,7 @@ export const LAST_5_TRACKS: ChannelVideo[] = [
   },
   {
     id: 'lost-the-count',
+    publishedAt: '2026-11-09T00:00:00Z',
     videoId: 'h20rZi9OxbM',
     index: '04',
     title: 'Lost the Count | Official Animated Music Video — R4agRek0il',
@@ -403,7 +426,6 @@ function publishedMs(v: ChannelVideo): number | null {
 export function mergeVideos(rss: RssVideoEntry[], curated: ChannelVideo[]): ChannelVideo[] {
   const rssById = new Map<string, RssVideoEntry>();
   for (const e of rss) if (e?.videoId && !rssById.has(e.videoId)) rssById.set(e.videoId, e);
-  if (rssById.size === 0) return curated;
   const curatedIds = new Set(curated.map((v) => v.videoId));
 
   const dated: ChannelVideo[] = [];

@@ -17,10 +17,10 @@ function formatViews(n: number | null | undefined): string | null {
   return typeof n === 'number' ? `${n.toLocaleString()} views` : null;
 }
 
-function Thumb({ video, tall }: { video: ChannelVideo; tall?: boolean }) {
+function Thumb({ video }: { video: ChannelVideo }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className={`relative w-full overflow-hidden rounded-xl border border-white/10 bg-black ${tall ? 'aspect-video' : 'aspect-video'}`}>
+    <div className={`relative w-full overflow-hidden rounded-xl border border-white/10 bg-black aspect-video`}>
       {!failed ? (
         <img
           src={getYouTubeThumbnailUrl(video.videoId)}
@@ -70,7 +70,7 @@ function PopularCard({ label, video, onPlay }: { label: string; video: ChannelVi
   return (
     <div className="group rounded-2xl border border-white/10 bg-[#04071A]/70 p-4">
       <p className="mb-3 font-mono text-xs text-[#FFB800]">
-        {label}
+        <span aria-hidden="true">⭐</span> {label}
       </p>
       <Thumb video={video} />
       <h3 className="mt-3 line-clamp-2 font-display text-base font-bold text-white">{video.title}</h3>
@@ -83,17 +83,20 @@ function PopularCard({ label, video, onPlay }: { label: string; video: ChannelVi
 export default function SpotlightPopular({ isLive, spotlight, topVideo, topShort, onPlay }: SpotlightPopularProps) {
   if (!isLive || (!spotlight && !topVideo && !topShort)) return null;
   const sv = spotlight?.video;
-  const badge = spotlight?.reason === 'pinned' ? '🔥 Spotlight' : '🔥 Trending now';
+  const badge =
+    spotlight?.reason === 'pinned' ? 'Spotlight' : spotlight?.reason === 'trending' ? 'Trending now' : 'Rising fast';
+  const badgeIcon = spotlight?.reason === 'rising' ? '🚀' : '🔥';
+  const svViews = formatViews(sv?.views);
   const gainLine =
     spotlight?.reason === 'trending' && spotlight.gained && spotlight.windowHours
       ? `+${spotlight.gained.toLocaleString()} views in last ${spotlight.windowHours}h`
       : null;
 
   return (
-    <section id="spotlight" className="border-t border-white/10 bg-[#04071A]/50 py-16 sm:py-20">
+    <section id="spotlight" aria-labelledby="spotlight-heading" className="border-t border-white/10 bg-[#04071A]/50 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <p className="font-mono text-xs text-[#FF7A00]">Signal Boost</p>
-        <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-white text-balance sm:text-3xl">
+        <h2 id="spotlight-heading" className="mt-2 font-display text-2xl font-bold tracking-tight text-white text-balance sm:text-3xl">
           Spotlight &amp; Most Popular
         </h2>
         <div className={`mt-8 grid gap-6 ${sv ? 'lg:grid-cols-[1.4fr_1fr]' : ''}`}>
@@ -101,19 +104,19 @@ export default function SpotlightPopular({ isLive, spotlight, topVideo, topShort
             <div className="group rounded-2xl border border-[#FF7B00]/40 bg-[#04071A]/80 p-5 shadow-[0_0_40px_-12px_rgba(255,123,0,0.5)]">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full border border-[#FF7B00]/60 bg-[#FF7B00]/15 px-3 py-1 font-mono text-xs font-semibold text-[#FFB800]">
-                  {badge}
+                  <span aria-hidden="true">{badgeIcon}</span> {badge}
                 </span>
                 {gainLine && <span className="font-mono text-xs text-[#00F0FF]">{gainLine}</span>}
               </div>
-              <Thumb video={sv} tall />
+              <Thumb video={sv} />
               <h3 className="mt-4 font-display text-xl font-bold text-white sm:text-2xl">{sv.title}</h3>
-              {formatViews(sv.views) && <p className="mt-1 font-mono text-xs text-white/60">{formatViews(sv.views)}</p>}
+              {svViews && <p className="mt-1 font-mono text-xs text-white/60">{svViews}</p>}
               <Actions video={sv} onPlay={onPlay} />
             </div>
           )}
           <div className={`grid gap-6 ${sv ? '' : 'sm:grid-cols-2'}`}>
-            {topVideo && <PopularCard label="⭐ Most Popular Song" video={topVideo} onPlay={onPlay} />}
-            {topShort && <PopularCard label="⭐ Top Short" video={topShort} onPlay={onPlay} />}
+            {topVideo && <PopularCard label="Most Popular Song" video={topVideo} onPlay={onPlay} />}
+            {topShort && <PopularCard label="Top Short" video={topShort} onPlay={onPlay} />}
           </div>
         </div>
       </div>

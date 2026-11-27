@@ -34,7 +34,7 @@ async function readSnapshots(kv: KVLike | undefined): Promise<Snapshot[] | null>
     const data = await kv.get(SNAPSHOT_KEY, 'json');
     return Array.isArray(data) ? (data as Snapshot[]) : [];
   } catch {
-    return null;
+    return []; // damaged value: start a fresh list so it gets overwritten
   }
 }
 

@@ -17,8 +17,29 @@ describe('computeSpotlight', () => {
   it('pins SPOTLIGHT_VIDEO_ID when it is in the feed', () => {
     expect(computeSpotlight(videos, null, now, 'notDancing1')).toEqual({ videoId: 'notDancing1', reason: 'pinned' });
   });
-  it('ignores a pinned id not in the feed', () => {
-    expect(computeSpotlight(videos, null, now, 'missing0000')?.reason).toBe('rising');
+  it('honours a pinned id even when it is older than the feed window', () => {
+    expect(computeSpotlight(videos, null, now, '_8D1_KcdVDU')).toEqual({ videoId: '_8D1_KcdVDU', reason: 'pinned' });
+  });
+  it('popular never picks a #Shorts-titled entry as top song', () => {
+    const list: StatVideo[] = [
+      { videoId: 'a', published: '2026-11-11T00:00:00Z', views: 5000, title: 'Hook #Shorts' },
+      { videoId: 'b', published: '2026-11-09T00:00:00Z', views: 978, title: 'Lost the Count' },
+    ];
+    expect(computePopular(list).topVideoId).toBe('b');
+  });
+  it('new uploads missing from the baseline count from 0 views', () => {
+    const snaps: Snapshot[] = [{ t: now - 24 * H, views: { x: 10 } }];
+    const list: StatVideo[] = [
+      { videoId: 'x', published: '2026-11-01T00:00:00Z', views: 30 },
+      { videoId: 'fresh', published: new Date(now - 2 * H).toISOString(), views: 400 },
+    ];
+    expect(computeSpotlight(list, snaps, now)?.videoId).toBe('fresh');
+  });
+  it('fallback (no API) labels only the newest-dated curated video Latest Drop', () => {
+    const st = buildChannelState(null, now);
+    expect(st.latestDrop.videoId).toBe('fxQiWP4OFiM');
+    expect(st.videos.filter((v) => v.releaseNote === 'Latest Drop').map((v) => v.videoId)).toEqual(['fxQiWP4OFiM']);
+    expect(st.tracks.map((t) => t.videoId)).toEqual(['fxQiWP4OFiM', 'SoZfGOnwQXA', 'Nrp7AcQIkWU', 'sm_sXx6Ek2E', 'h20rZi9OxbM']);
   });
   it('trending: biggest gainer vs the snapshot closest to 48h ago', () => {
     const snaps: Snapshot[] = [

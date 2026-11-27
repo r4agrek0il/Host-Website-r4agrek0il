@@ -29,12 +29,12 @@ const SHORTS_HIGHLIGHTS: ShortsSlot[] = [
     format: '9:16 Vertical Drop',
   },
   {
-    video: CHANNEL_VIDEOS[0],
+    video: CHANNEL_VIDEOS.find((v) => v.videoId === 'SoZfGOnwQXA') ?? CHANNEL_VIDEOS[0],
     hook: 'Not Dancing — Kinetic Cut Highlight',
     format: 'Animation Loop',
   },
   {
-    video: CHANNEL_VIDEOS[1],
+    video: CHANNEL_VIDEOS.find((v) => v.videoId === 'h20rZi9OxbM') ?? CHANNEL_VIDEOS[1],
     hook: 'Lost the Count — Synth Pulse Cut',
     format: 'Breakout Teaser',
   },
