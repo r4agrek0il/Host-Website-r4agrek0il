@@ -51,13 +51,17 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
               className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-[#00F0FF]/35 bg-[#04071A] shadow-[0_0_40px_rgba(0,240,255,0.2)] sm:h-32 sm:w-32"
             >
               {!imgFailed ? (
+                <picture className="contents">
+                  <source srcSet={CHANNEL_PROFILE.avatarImageWebp} type="image/webp" />
                 <img
                   src={CHANNEL_PROFILE.avatarImage}
                   alt="R4agRek0il emblem"
                   referrerPolicy="no-referrer"
+                  decoding="async"
                   onError={() => setImgFailed(true)}
                   className="h-full w-full object-cover"
                 />
+                </picture>
               ) : (
                 <span className="font-display text-5xl font-bold text-[#00F0FF]">4</span>
               )}

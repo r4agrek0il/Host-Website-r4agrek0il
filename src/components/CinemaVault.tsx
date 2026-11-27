@@ -130,6 +130,10 @@ export default function CinemaVault({
                     {!failedThumbs[activeVideo.videoId] ? (
                       <img
                         src={getYouTubeThumbnailUrl(activeVideo.videoId)}
+                        width={480}
+                        height={360}
+                        loading="lazy"
+                        decoding="async"
                         alt={activeVideo.title}
                         referrerPolicy="no-referrer"
                         onError={() => markThumbFailed(activeVideo.videoId)}
@@ -334,6 +338,10 @@ export default function CinemaVault({
                     {!failedThumbs[video.videoId] ? (
                       <img
                         src={getYouTubeThumbnailUrl(video.videoId)}
+                        width={480}
+                        height={360}
+                        loading="lazy"
+                        decoding="async"
                         alt={video.title}
                         referrerPolicy="no-referrer"
                         onError={() => markThumbFailed(video.videoId)}

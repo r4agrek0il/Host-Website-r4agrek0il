@@ -110,6 +110,10 @@ export default function ShortsFeed({ onOpenShort, shorts }: ShortsFeedProps) {
                 {!failedThumbs[thumbKey] ? (
                   <img
                     src={getYouTubeThumbnailUrl(item.video.videoId)}
+                    width={480}
+                    height={360}
+                    loading="lazy"
+                    decoding="async"
                     alt={item.hook}
                     referrerPolicy="no-referrer"
                     onError={() =>

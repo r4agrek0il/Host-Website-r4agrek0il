@@ -51,7 +51,7 @@ export default function HeroStage({
 }: HeroStageProps) {
   const [bannerError, setBannerError] = useState(false);
   const [processedBannerUrl, setProcessedBannerUrl] = useState<string>(
-    CHANNEL_PROFILE.bannerImage
+    CHANNEL_PROFILE.bannerImageWebp
   );
   const [avatarError, setAvatarError] = useState(false);
   const [bannerMode, setBannerMode] = useState<'mythic' | 'original'>('mythic');
@@ -68,7 +68,13 @@ export default function HeroStage({
     let cancelled = false;
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.src = CHANNEL_PROFILE.bannerImage;
+    // Prefer the light WebP; fall back to the original PNG if it fails.
+    img.onerror = () => {
+      if (cancelled || img.src.endsWith('.png')) return;
+      setProcessedBannerUrl(CHANNEL_PROFILE.bannerImage);
+      img.src = CHANNEL_PROFILE.bannerImage;
+    };
+    img.src = CHANNEL_PROFILE.bannerImageWebp;
 
     img.onload = () => {
       if (cancelled) return;
@@ -361,13 +367,17 @@ export default function HeroStage({
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-[#00F0FF]/30 bg-[#04071A] sm:h-20 sm:w-20">
                     {!avatarError ? (
+                      <picture className="contents">
+                        <source srcSet={CHANNEL_PROFILE.avatarImageWebp} type="image/webp" />
                       <img
                         src={CHANNEL_PROFILE.avatarImage}
                         alt="R4agRek0il Cyan 4 emblem"
                         referrerPolicy="no-referrer"
+                        decoding="async"
                         onError={() => setAvatarError(true)}
                         className="h-full w-full object-cover"
                       />
+                      </picture>
                     ) : (
                       <div className="flex h-full w-full items-center justify-center font-display text-2xl font-bold text-[#00F0FF]">
                         4
@@ -547,16 +557,20 @@ export default function HeroStage({
               />
 
               {!avatarError ? (
+                <picture className="contents">
+                  <source srcSet={CHANNEL_PROFILE.avatarImageWebp} type="image/webp" />
                 <img
                   src={CHANNEL_PROFILE.avatarImage}
                   alt="R4agRek0il glowing Cyan 4 with orange headphone coil"
                   referrerPolicy="no-referrer"
+                  decoding="async"
                   onError={() => setAvatarError(true)}
                   style={{
                     filter: 'drop-shadow(0 0 18px rgba(0, 240, 255, 0.25))',
                   }}
                   className="relative z-10 h-44 w-44 rounded-2xl object-contain sm:h-48 sm:w-48"
                 />
+                </picture>
               ) : (
                 <div className="relative z-10 flex h-44 w-44 items-center justify-center rounded-2xl bg-[#04071A] font-display text-6xl font-bold text-[#00F0FF]">
                   4

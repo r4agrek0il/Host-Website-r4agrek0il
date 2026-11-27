@@ -462,13 +462,17 @@ export default function AudioDeck({
           <div className="flex min-w-0 items-center gap-3">
             <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-[#03050a]">
               {!avatarFailed ? (
+                <picture className="contents">
+                  <source srcSet={CHANNEL_PROFILE.avatarImageWebp} type="image/webp" />
                 <img
                   src={CHANNEL_PROFILE.avatarImage}
                   alt="R4agRek0il"
                   referrerPolicy="no-referrer"
+                  decoding="async"
                   onError={() => setAvatarFailed(true)}
                   className="h-full w-full object-cover"
                 />
+                </picture>
               ) : (
                 <div className="flex h-full w-full items-center justify-center font-display text-base font-bold text-[#00F0FF]">
                   4

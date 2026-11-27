@@ -56,6 +56,9 @@ export const CHANNEL_PROFILE = {
     'Official audiovisual command hub for R4agRek0il — original animated music videos, epic EDM lyric visuals, Neon Nights synthwave mixes, and high-impact Shorts.',
   bannerImage: '/assets/aistudio/Logo_R4agRek0il_f73e43e3.png',
   avatarImage: '/assets/aistudio/Cyan_4_with_orange_headphone_coil_05909869.png',
+  // Lightweight WebP twins (PNG originals kept as fallback).
+  bannerImageWebp: '/assets/aistudio/Logo_R4agRek0il_f73e43e3.webp',
+  avatarImageWebp: '/assets/aistudio/Cyan_4_with_orange_headphone_coil_05909869.webp',
   urls: {
     featured: 'https://www.youtube.com/@R4agRek0il/featured',
     videos: 'https://www.youtube.com/@R4agRek0il/videos',

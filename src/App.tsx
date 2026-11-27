@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MotionConfig } from 'motion/react';
 import AudioDeck from './components/AudioDeck';
 import BootSequence from './components/BootSequence';
 import MobileSubscribePill from './components/MobileSubscribePill';
@@ -7,8 +8,7 @@ import CinemaModal from './components/CinemaModal';
 import CinemaVault from './components/CinemaVault';
 import CommunityNexus from './components/CommunityNexus';
 import CyberBackdrop from './components/CyberBackdrop';
-import CyberSonicStage3D from './components/CyberSonicStage3D';
-import EngagementAnalytics from './components/EngagementAnalytics';
+import LazySection from './components/LazySection';
 import Footer from './components/Footer';
 import HeroStage from './components/HeroStage';
 import Navbar from './components/Navbar';
@@ -17,6 +17,10 @@ import ShortsFeed from './components/ShortsFeed';
 import { type ChannelVideo } from './data/channel';
 import { useChannelVideos } from './utils/useChannelVideos';
 import { cyberAudio } from './utils/audioEngine';
+
+// Heavy sections (three.js stage, charts) load as separate chunks on demand.
+const CyberSonicStage3D = lazy(() => import('./components/CyberSonicStage3D'));
+const EngagementAnalytics = lazy(() => import('./components/EngagementAnalytics'));
 import {
   getInitialSnapshot,
   pollChannelTelemetry,
@@ -211,6 +215,7 @@ export default function App() {
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="relative min-h-screen bg-[#03050a] text-[#F8FAFC]">
       <CyberBackdrop isPlaying={anyPlaybackActive} />
 
@@ -247,14 +252,18 @@ export default function App() {
           videos={channelVideos}
         />
 
-        <EngagementAnalytics
-          liveMode={liveMode}
-          isPolling={isPolling}
-          liveSnapshot={liveSnapshot}
-          onToggleLiveMode={handleToggleLiveMode}
-        />
+        <LazySection minHeight="720px" label="analytics" anchorId="analytics">
+          <EngagementAnalytics
+            liveMode={liveMode}
+            isPolling={isPolling}
+            liveSnapshot={liveSnapshot}
+            onToggleLiveMode={handleToggleLiveMode}
+          />
+        </LazySection>
 
-        <CyberSonicStage3D isPlaying={anyPlaybackActive} />
+        <LazySection minHeight="640px" label="sonic stage" anchorId="sonic-stage">
+          <CyberSonicStage3D isPlaying={anyPlaybackActive} />
+        </LazySection>
 
         <ShortsFeed onOpenShort={handleOpenModal} shorts={liveShorts} />
 
@@ -285,5 +294,6 @@ export default function App() {
         tracks={deckTracks}
       />
     </div>
+    </MotionConfig>
   );
 }
