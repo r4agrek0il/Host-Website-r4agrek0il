@@ -59,6 +59,32 @@ async function writeCached(cache: Cache | null, key: string, data: VideosResult,
   }
 }
 
+/**
+ * Titles don't always carry #Shorts, so ask YouTube directly:
+ * /shorts/<id> answers 200 for a Short and redirects (303) for a regular video.
+ * Runs only on a feed refresh (at most every 15 min); on any error the title-based guess stays.
+ */
+async function detectShorts(videos: FeedEntry[]): Promise<void> {
+  await Promise.all(
+    videos.map(async (v) => {
+      if (v.isShort) return;
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 3000);
+        const r = await fetch(`https://www.youtube.com/shorts/${v.videoId}`, {
+          method: 'HEAD',
+          redirect: 'manual',
+          signal: ctrl.signal,
+        });
+        clearTimeout(timer);
+        if (r.status === 200) v.isShort = true;
+      } catch {
+        // keep title-based guess
+      }
+    })
+  );
+}
+
 export async function onRequestGet(context: CloudflarePagesContext): Promise<Response> {
   const cache = getCache();
 
@@ -70,6 +96,7 @@ export async function onRequestGet(context: CloudflarePagesContext): Promise<Res
     if (!res.ok) throw new Error(`upstream ${res.status}`);
     const videos = parseFeed(await res.text());
     if (videos.length === 0) throw new Error('empty feed');
+    await detectShorts(videos);
     const result: VideosResult = { ok: true, fetchedAt: new Date().toISOString(), videos };
     const writes = Promise.all([
       writeCached(cache, FRESH_KEY, result, FRESH_TTL_S),
