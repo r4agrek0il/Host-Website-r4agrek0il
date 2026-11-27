@@ -63,6 +63,8 @@ interface AudioDeckProps {
   onMutedChange: (muted: boolean) => void;
   onExpandCinema: (track: ChannelVideo) => void;
   externalPlayRequestTick: number;
+  /** Deck playlist; defaults to the curated LAST_5_TRACKS. */
+  tracks?: ChannelVideo[];
 }
 
 export default function AudioDeck({
@@ -74,7 +76,12 @@ export default function AudioDeck({
   onMutedChange,
   onExpandCinema,
   externalPlayRequestTick,
+  tracks: tracksProp,
 }: AudioDeckProps) {
+  const tracks = tracksProp && tracksProp.length > 0 ? tracksProp : LAST_5_TRACKS;
+  const tracksRef = useRef(tracks);
+  tracksRef.current = tracks;
+  const safeIndex = Math.min(Math.max(currentTrackIndex, 0), tracks.length - 1);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YTPlayerInstance | null>(null);
   const trackIndexRef = useRef(currentTrackIndex);
@@ -88,11 +95,11 @@ export default function AudioDeck({
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
 
-  const currentTrack = LAST_5_TRACKS[currentTrackIndex] ?? LAST_5_TRACKS[0];
+  const currentTrack = tracks[safeIndex] ?? tracks[0];
 
   useEffect(() => {
-    trackIndexRef.current = currentTrackIndex;
-  }, [currentTrackIndex]);
+    trackIndexRef.current = safeIndex;
+  }, [safeIndex]);
 
   useEffect(() => {
     mutedRef.current = isMuted;
@@ -126,7 +133,7 @@ export default function AudioDeck({
       playerRef.current = new window.YT.Player(playerContainerRef.current, {
         width: '100%',
         height: '100%',
-        videoId: LAST_5_TRACKS[0].videoId,
+        videoId: (tracksRef.current[trackIndexRef.current] ?? tracksRef.current[0]).videoId,
         playerVars: {
           autoplay: 1,
           controls: 0,
@@ -186,7 +193,7 @@ export default function AudioDeck({
               onPlayingChange(false);
               cyberAudio.setDuckForYouTube(false);
             } else if (data === ENDED) {
-              const nextIdx = (trackIndexRef.current + 1) % LAST_5_TRACKS.length;
+              const nextIdx = (trackIndexRef.current + 1) % tracksRef.current.length;
               onTrackIndexChange(nextIdx);
             }
           },
@@ -250,21 +257,23 @@ export default function AudioDeck({
     };
   }, [autoplayMutedHint, playerReady, onMutedChange, onPlayingChange]);
 
-  // Switch loaded YouTube video whenever currentTrackIndex changes
-  const prevIndexRef = useRef(0);
+  // Switch loaded YouTube video whenever the selected track changes
+  // (keyed by videoId so a refreshed playlist that keeps the same track doesn't restart it)
+  const currentVideoId = currentTrack.videoId;
+  const prevVideoIdRef = useRef(currentVideoId);
   useEffect(() => {
-    if (prevIndexRef.current === currentTrackIndex) return;
-    prevIndexRef.current = currentTrackIndex;
+    if (prevVideoIdRef.current === currentVideoId) return;
+    prevVideoIdRef.current = currentVideoId;
     const player = playerRef.current;
     if (player && playerReady) {
-      player.loadVideoById(LAST_5_TRACKS[currentTrackIndex].videoId);
+      player.loadVideoById(currentVideoId);
       if (!mutedRef.current) {
         player.unMute();
         player.setVolume(volumeRef.current);
       }
       onPlayingChange(true);
     }
-  }, [currentTrackIndex, playerReady, onPlayingChange]);
+  }, [currentVideoId, playerReady, onPlayingChange]);
 
   // Respond to Hero Play/Pause toggle button
   const prevTickRef = useRef(externalPlayRequestTick);
@@ -321,12 +330,12 @@ export default function AudioDeck({
 
   const handlePrev = () => {
     const prevIdx =
-      (currentTrackIndex - 1 + LAST_5_TRACKS.length) % LAST_5_TRACKS.length;
+      (safeIndex - 1 + tracks.length) % tracks.length;
     onTrackIndexChange(prevIdx);
   };
 
   const handleNext = () => {
-    const nextIdx = (currentTrackIndex + 1) % LAST_5_TRACKS.length;
+    const nextIdx = (safeIndex + 1) % tracks.length;
     onTrackIndexChange(nextIdx);
   };
 
@@ -389,8 +398,8 @@ export default function AudioDeck({
             </button>
           </div>
           <div className="divide-y divide-white/10">
-            {LAST_5_TRACKS.map((track, idx) => {
-              const active = idx === currentTrackIndex;
+            {tracks.map((track, idx) => {
+              const active = idx === safeIndex;
               return (
                 <button
                   key={track.videoId}
@@ -471,7 +480,7 @@ export default function AudioDeck({
                 {currentTrack.shortTitle}
               </p>
               <p className="truncate font-mono text-[11px] text-[#00F0FF] tabular-nums">
-                Track {currentTrackIndex + 1}/5 · {currentTrack.genre}
+                Track {safeIndex + 1}/{tracks.length} · {currentTrack.genre}
               </p>
             </div>
           </div>

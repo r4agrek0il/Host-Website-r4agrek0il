@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AudioDeck from './components/AudioDeck';
 import BootSequence from './components/BootSequence';
 import ChannelMarquee from './components/ChannelMarquee';
@@ -13,7 +13,8 @@ import HeroStage from './components/HeroStage';
 import Navbar from './components/Navbar';
 import PillarsMatrix from './components/PillarsMatrix';
 import ShortsFeed from './components/ShortsFeed';
-import { CHANNEL_VIDEOS, LAST_5_TRACKS, type ChannelVideo } from './data/channel';
+import { type ChannelVideo } from './data/channel';
+import { useChannelVideos } from './utils/useChannelVideos';
 import { cyberAudio } from './utils/audioEngine';
 import {
   getInitialSnapshot,
@@ -24,6 +25,10 @@ import {
 export default function App() {
   const [bootComplete, setBootComplete] = useState(false);
 
+  // Live YouTube uploads (RSS via /api/videos) merged with curated metadata
+  const { videos: channelVideos, tracks: deckTracks, shorts: liveShorts } = useChannelVideos();
+  const deckTracksRef = useRef(deckTracks);
+
   // Synced Audio Deck (Last 5 Tracks) + Synthwave Background Loop State
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isDeckPlaying, setIsDeckPlaying] = useState(false);
@@ -31,7 +36,7 @@ export default function App() {
   const [externalPlayTick, setExternalPlayTick] = useState(0);
 
   // Cinema Vault & Modal State
-  const [activeVaultVideo, setActiveVaultVideo] = useState<ChannelVideo>(LAST_5_TRACKS[0]);
+  const [activeVaultVideo, setActiveVaultVideo] = useState<ChannelVideo>(deckTracks[0]);
   const [isPlayingInline, setIsPlayingInline] = useState(false);
   const [modalVideo, setModalVideo] = useState<ChannelVideo | null>(null);
 
@@ -74,7 +79,25 @@ export default function App() {
     setLiveMode((prev) => !prev);
   }, []);
 
-  const currentDeckTrack = LAST_5_TRACKS[currentTrackIndex] ?? LAST_5_TRACKS[0];
+  // Keep the selected deck track stable (by videoId) when the playlist refreshes; clamp otherwise.
+  useEffect(() => {
+    const prevTracks = deckTracksRef.current;
+    deckTracksRef.current = deckTracks;
+    if (prevTracks === deckTracks) return;
+    setCurrentTrackIndex((idx) => {
+      const prevId = prevTracks[idx]?.videoId;
+      const found = prevId ? deckTracks.findIndex((t) => t.videoId === prevId) : -1;
+      if (found !== -1) return found;
+      return Math.min(Math.max(idx, 0), deckTracks.length - 1);
+    });
+    setActiveVaultVideo((prev) => channelVideos.find((v) => v.videoId === prev.videoId) ?? prev);
+  }, [deckTracks, channelVideos]);
+
+  const currentDeckTrack = deckTracks[currentTrackIndex] ?? deckTracks[0];
+  const marqueeTitles = useMemo(
+    () => channelVideos.filter((v) => v.isNew).slice(0, 4).map((v) => v.shortTitle),
+    [channelVideos]
+  );
   const anyPlaybackActive = isDeckPlaying || isPlayingInline || modalVideo !== null;
 
   const handleBootComplete = useCallback(() => {
@@ -117,13 +140,14 @@ export default function App() {
 
   const handleTrackIndexChange = useCallback((idx: number) => {
     setCurrentTrackIndex(idx);
-    setActiveVaultVideo(LAST_5_TRACKS[idx] ?? LAST_5_TRACKS[0]);
+    const list = deckTracksRef.current;
+    setActiveVaultVideo(list[idx] ?? list[0]);
   }, []);
 
   const handleSelectInlineVideo = (video: ChannelVideo, autoPlay = true) => {
     setActiveVaultVideo(video);
     setIsPlayingInline(autoPlay);
-    const matchingDeckIdx = LAST_5_TRACKS.findIndex((t) => t.videoId === video.videoId);
+    const matchingDeckIdx = deckTracks.findIndex((t) => t.videoId === video.videoId);
     if (matchingDeckIdx !== -1) {
       setCurrentTrackIndex(matchingDeckIdx);
     }
@@ -137,7 +161,7 @@ export default function App() {
     setActiveVaultVideo(video);
     setIsPlayingInline(false);
     setModalVideo(video);
-    const matchingDeckIdx = LAST_5_TRACKS.findIndex((t) => t.videoId === video.videoId);
+    const matchingDeckIdx = deckTracks.findIndex((t) => t.videoId === video.videoId);
     if (matchingDeckIdx !== -1) {
       setCurrentTrackIndex(matchingDeckIdx);
     }
@@ -147,11 +171,11 @@ export default function App() {
   };
 
   const handleNextModalTrack = () => {
-    const currentIndex = CHANNEL_VIDEOS.findIndex(
+    const currentIndex = channelVideos.findIndex(
       (v) => v.videoId === (modalVideo?.videoId ?? activeVaultVideo.videoId)
     );
-    const nextIndex = (currentIndex + 1) % CHANNEL_VIDEOS.length;
-    const nextVideo = CHANNEL_VIDEOS[nextIndex];
+    const nextIndex = (currentIndex + 1) % channelVideos.length;
+    const nextVideo = channelVideos[nextIndex];
     setActiveVaultVideo(nextVideo);
     setModalVideo(nextVideo);
   };
@@ -182,13 +206,14 @@ export default function App() {
           onOpenCinemaModal={handleOpenModal}
         />
 
-        <ChannelMarquee />
+        <ChannelMarquee titles={marqueeTitles} />
 
         <CinemaVault
           activeVideo={activeVaultVideo}
           isPlayingInline={isPlayingInline}
           onSelectInlineVideo={handleSelectInlineVideo}
           onOpenModal={handleOpenModal}
+          videos={channelVideos}
         />
 
         <EngagementAnalytics
@@ -200,7 +225,7 @@ export default function App() {
 
         <CyberSonicStage3D isPlaying={anyPlaybackActive} />
 
-        <ShortsFeed onOpenShort={handleOpenModal} />
+        <ShortsFeed onOpenShort={handleOpenModal} shorts={liveShorts} />
 
         <PillarsMatrix />
 
@@ -226,6 +251,7 @@ export default function App() {
         onMutedChange={setIsAudioMuted}
         onExpandCinema={handleOpenModal}
         externalPlayRequestTick={externalPlayTick}
+        tracks={deckTracks}
       />
     </div>
   );

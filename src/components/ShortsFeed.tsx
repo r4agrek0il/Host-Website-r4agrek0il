@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowUpRight, Play } from 'lucide-react';
 import {
   CHANNEL_PROFILE,
@@ -11,9 +11,17 @@ import ReleaseArtwork from './ReleaseArtwork';
 
 interface ShortsFeedProps {
   onOpenShort: (video: ChannelVideo) => void;
+  /** Live shorts list (newest first); slots fall back to curated highlights. */
+  shorts?: ChannelVideo[];
 }
 
-const SHORTS_HIGHLIGHTS = [
+interface ShortsSlot {
+  video: ChannelVideo;
+  hook: string;
+  format: string;
+}
+
+const SHORTS_HIGHLIGHTS: ShortsSlot[] = [
   {
     video: CHANNEL_VIDEOS.find((v) => v.videoId === 'QIV-N_7nPcE') ?? CHANNEL_VIDEOS[5],
     hook: 'Bring the Light — Vertical EDM Hook',
@@ -31,8 +39,32 @@ const SHORTS_HIGHLIGHTS = [
   },
 ];
 
-export default function ShortsFeed({ onOpenShort }: ShortsFeedProps) {
+const WAKE_THE_NIGHT_SHORT_ID = 'QIV-N_7nPcE';
+
+// Keep the Wake the Night short pinned, fill remaining slots with the latest live shorts,
+// then fall back to the curated highlight slots.
+function buildSlots(shorts: ChannelVideo[] | undefined): ShortsSlot[] {
+  if (!shorts || shorts.length === 0) return SHORTS_HIGHLIGHTS;
+  const pinned = SHORTS_HIGHLIGHTS[0];
+  const live = shorts
+    .filter((v) => v.videoId !== WAKE_THE_NIGHT_SHORT_ID)
+    .slice(0, SHORTS_HIGHLIGHTS.length - 1)
+    .map<ShortsSlot>((v) => ({
+      video: v,
+      hook: v.shortTitle,
+      format: v.isNew ? 'New Vertical Drop' : '9:16 Vertical Drop',
+    }));
+  const slots = [pinned, ...live];
+  for (const fallback of SHORTS_HIGHLIGHTS.slice(1)) {
+    if (slots.length >= SHORTS_HIGHLIGHTS.length) break;
+    if (!slots.some((s) => s.video.videoId === fallback.video.videoId)) slots.push(fallback);
+  }
+  return slots;
+}
+
+export default function ShortsFeed({ onOpenShort, shorts }: ShortsFeedProps) {
   const [failedThumbs, setFailedThumbs] = useState<Record<string, boolean>>({});
+  const slots = useMemo(() => buildSlots(shorts), [shorts]);
 
   return (
     <section id="shorts" className="border-t border-white/10 bg-[#04071A]/50 py-16 sm:py-20">
@@ -61,7 +93,7 @@ export default function ShortsFeed({ onOpenShort }: ShortsFeedProps) {
 
         {/* Horizontal 9:16 Showcase Grid */}
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {SHORTS_HIGHLIGHTS.map((item, idx) => {
+          {slots.map((item, idx) => {
             const thumbKey = `${item.video.videoId}-${idx}`;
             return (
               <button

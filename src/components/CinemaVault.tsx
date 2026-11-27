@@ -16,6 +16,8 @@ interface CinemaVaultProps {
   isPlayingInline: boolean;
   onSelectInlineVideo: (video: ChannelVideo, autoPlay?: boolean) => void;
   onOpenModal: (video: ChannelVideo) => void;
+  /** Vault catalogue; defaults to curated CHANNEL_VIDEOS. */
+  videos?: ChannelVideo[];
 }
 
 const FILTER_TABS: { id: ReleaseCategory; label: string }[] = [
@@ -31,6 +33,7 @@ export default function CinemaVault({
   isPlayingInline,
   onSelectInlineVideo,
   onOpenModal,
+  videos = CHANNEL_VIDEOS,
 }: CinemaVaultProps) {
   const [activeCategory, setActiveCategory] = useState<ReleaseCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,7 +42,7 @@ export default function CinemaVault({
 
   const filteredVideos = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return CHANNEL_VIDEOS.filter((video) => {
+    return videos.filter((video) => {
       const matchesCategory =
         activeCategory === 'all'
           ? true
@@ -53,7 +56,7 @@ export default function CinemaVault({
         video.moodTags.some((tag) => tag.toLowerCase().includes(q));
       return matchesCategory && matchesQuery;
     });
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, videos]);
 
   const markThumbFailed = (videoId: string) => {
     setFailedThumbs((prev) => ({ ...prev, [videoId]: true }));
@@ -157,8 +160,12 @@ export default function CinemaVault({
                     <span className="text-[#00F0FF]">{activeVideo.index}</span>
                     <span aria-hidden="true">·</span>
                     <span>{activeVideo.categoryLabel}</span>
-                    <span aria-hidden="true">·</span>
-                    <span>{activeVideo.duration}</span>
+                    {activeVideo.duration && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{activeVideo.duration}</span>
+                      </>
+                    )}
                   </div>
 
                   <h3 className="mt-3 font-display text-xl font-bold leading-snug text-white">
@@ -321,9 +328,16 @@ export default function CinemaVault({
                     <span className="absolute right-3 bottom-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#FF7A00] text-[#04071A] shadow-md transition-transform duration-150 group-hover:scale-105">
                       <Play className="ml-0.5 h-4 w-4 fill-current" />
                     </span>
-                    <span className="absolute bottom-3 left-3 font-mono text-xs font-medium text-white tabular-nums">
-                      {video.duration}
-                    </span>
+                    {video.duration && (
+                      <span className="absolute bottom-3 left-3 font-mono text-xs font-medium text-white tabular-nums">
+                        {video.duration}
+                      </span>
+                    )}
+                    {video.isNew && (
+                      <span className="absolute top-3 left-3 inline-flex items-center rounded-full border border-[#FF7A00]/60 bg-[#04071A]/85 px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-wider text-[#FF7A00] shadow-[0_0_12px_rgba(255,122,0,0.45)]">
+                        NEW
+                      </span>
+                    )}
                   </button>
 
                   {/* Metadata & Actions */}

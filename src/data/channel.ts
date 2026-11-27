@@ -18,6 +18,9 @@ export interface ChannelVideo {
   inNeonNights?: boolean;
   accentTone: 'cyan' | 'orange' | 'dual';
   waveformSeed: number;
+  publishedAt?: string;
+  isNew?: boolean;
+  views?: number | null;
 }
 
 export interface ChannelPillar {
@@ -301,4 +304,104 @@ export function getYouTubeWatchUrl(videoId: string, isShort?: boolean): string {
   return isShort
     ? `https://www.youtube.com/shorts/${videoId}`
     : `https://www.youtube.com/watch?v=${videoId}`;
+}
+
+// ---------------------------------------------------------------------------
+// Auto-sync: live YouTube RSS uploads merged with curated metadata
+// ---------------------------------------------------------------------------
+
+/** The promoted video ("What If I Don't?") — shown first in hero/deck when present. */
+export const FEATURED_VIDEO_ID = 'sm_sXx6Ek2E';
+
+export const NEW_BADGE_WINDOW_DAYS = 14;
+
+export interface RssVideoEntry {
+  videoId: string;
+  title: string;
+  published: string;
+  views: number | null;
+  description: string;
+  isShort: boolean;
+}
+
+const ACCENT_TONES: ChannelVideo['accentTone'][] = ['cyan', 'orange', 'dual'];
+
+function seedFromId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return (h % 97) + 1;
+}
+
+function deriveShortTitle(title: string): string {
+  const cleaned = title
+    .replace(/#\S+/g, '')
+    .split(/\s[|–—]\s/)[0]
+    .trim();
+  return cleaned || title;
+}
+
+export function isRecentlyPublished(
+  publishedAt: string | undefined,
+  now: number = Date.now(),
+  windowDays: number = NEW_BADGE_WINDOW_DAYS
+): boolean {
+  if (!publishedAt) return false;
+  const t = Date.parse(publishedAt);
+  if (!Number.isFinite(t)) return false;
+  return now - t >= -60_000 && now - t <= windowDays * 86_400_000;
+}
+
+export function rssToChannelVideo(entry: RssVideoEntry, index: number): ChannelVideo {
+  const isShort = Boolean(entry.isShort);
+  return {
+    id: `yt-${entry.videoId}`,
+    videoId: entry.videoId,
+    index: String(index + 1).padStart(2, '0'),
+    title: entry.title,
+    shortTitle: deriveShortTitle(entry.title),
+    category: isShort ? 'shorts' : 'animated-mv',
+    categoryLabel: isShort ? 'YouTube Shorts' : 'New Upload',
+    genre: isShort ? 'Vertical Drop' : 'Original Release',
+    moodTags: isShort ? ['9:16 Vertical', 'Fresh Upload'] : ['Fresh Upload', 'R4agRek0il Original'],
+    duration: '',
+    releaseNote: isShort ? 'Vertical Transmission' : 'Fresh Upload',
+    storyNote: entry.description || 'Fresh transmission from the R4agRek0il channel.',
+    isShort: isShort || undefined,
+    accentTone: ACCENT_TONES[index % ACCENT_TONES.length],
+    waveformSeed: seedFromId(entry.videoId),
+    publishedAt: entry.published || undefined,
+    views: entry.views,
+  };
+}
+
+/**
+ * Curated metadata wins for known ids (enriched with publishedAt/views from RSS);
+ * uploads not in the curated list come first (newest first), then curated order.
+ */
+export function mergeVideos(rss: RssVideoEntry[], curated: ChannelVideo[]): ChannelVideo[] {
+  const rssById = new Map<string, RssVideoEntry>();
+  for (const e of rss) if (e?.videoId && !rssById.has(e.videoId)) rssById.set(e.videoId, e);
+  const curatedIds = new Set(curated.map((v) => v.videoId));
+
+  const fresh = [...rssById.values()]
+    .filter((e) => !curatedIds.has(e.videoId))
+    .sort((a, b) => (Date.parse(b.published) || 0) - (Date.parse(a.published) || 0))
+    .map((e, i) => rssToChannelVideo(e, i));
+
+  const seen = new Set<string>();
+  const out: ChannelVideo[] = [];
+  for (const v of fresh) {
+    if (seen.has(v.videoId)) continue;
+    seen.add(v.videoId);
+    out.push(v);
+  }
+  for (const v of curated) {
+    if (seen.has(v.videoId)) continue;
+    seen.add(v.videoId);
+    const live = rssById.get(v.videoId);
+    out.push(live ? { ...v, publishedAt: live.published || v.publishedAt, views: live.views ?? v.views } : v);
+  }
+  // Keep display ordinals sequential once new uploads are prepended.
+  if (fresh.length === 0) return out;
+  return out.map((v, i) => ({ ...v, index: String(i + 1).padStart(2, '0') }));
 }
