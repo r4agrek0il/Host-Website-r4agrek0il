@@ -34,7 +34,7 @@ export default function Navbar({ isAudioMuted, onToggleMasterMute }: NavbarProps
         className="h-[2px] w-full bg-gradient-to-r from-[#00F0FF] via-[#FFB800] to-[#FF7B00]"
       />
 
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 sm:gap-8 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 max-[359px]:gap-2 sm:gap-8 px-4 max-[359px]:px-3 sm:px-6 lg:px-8">
         {/* Zone 1: Single-line Brand wordmark */}
         <a
           href="#top"
@@ -60,7 +60,7 @@ export default function Navbar({ isAudioMuted, onToggleMasterMute }: NavbarProps
         </nav>
 
         {/* Zone 3: Master Audio Mute Toggle + Subscribe CTA */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 max-[359px]:gap-1.5 sm:gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onToggleMasterMute}

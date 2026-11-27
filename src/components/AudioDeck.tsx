@@ -608,7 +608,7 @@ export default function AudioDeck({
         </div>
 
         {/* Transport Controls + Volume + Last 5 Drawer Toggle */}
-        <div className={`${mobileCollapsed ? 'max-md:hidden ' : ''}flex items-center justify-between gap-2 border-t border-white/10 px-3 py-2.5`}>
+        <div className={`${mobileCollapsed ? 'max-md:hidden ' : ''}flex items-center justify-between gap-2 max-sm:gap-1 border-t border-white/10 px-3 py-2.5`}>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -667,7 +667,7 @@ export default function AudioDeck({
               value={isMuted ? 0 : volume}
               aria-label="Audio deck volume"
               onChange={(e) => handleVolumeChange(Number(e.target.value))}
-              className="h-1 w-16 cursor-pointer accent-[#00F0FF]"
+              className="h-1 w-16 max-sm:w-12 min-w-0 cursor-pointer accent-[#00F0FF]"
             />
           </div>
 
@@ -679,7 +679,7 @@ export default function AudioDeck({
             className="inline-flex h-9 max-md:h-10 items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 font-mono text-[11px] font-medium text-slate-200 whitespace-nowrap transition-colors hover:border-[#00F0FF]/50 hover:text-white"
           >
             <ListMusic className="h-3.5 w-3.5 text-[#00F0FF]" />
-            <span>5 Tracks</span>
+            <span className="max-[400px]:sr-only">5 Tracks</span>
             {drawerOpen ? (
               <ChevronDown className="h-3.5 w-3.5" />
             ) : (
