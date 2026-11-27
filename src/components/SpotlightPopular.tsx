@@ -101,7 +101,7 @@ export default function SpotlightPopular({ isLive, spotlight, topVideo, topShort
         </h2>
         <div className={`mt-8 grid gap-6 ${sv ? 'lg:grid-cols-[1.4fr_1fr]' : ''}`}>
           {sv && (
-            <div className="group rounded-2xl border border-[#FF7B00]/40 bg-[#04071A]/80 p-5 shadow-[0_0_40px_-12px_rgba(255,123,0,0.5)]">
+            <div className="group self-start rounded-2xl border border-[#FF7B00]/40 bg-[#04071A]/80 p-5 shadow-[0_0_40px_-12px_rgba(255,123,0,0.5)]">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full border border-[#FF7B00]/60 bg-[#FF7B00]/15 px-3 py-1 font-mono text-xs font-semibold text-[#FFB800]">
                   <span aria-hidden="true">{badgeIcon}</span> {badge}
