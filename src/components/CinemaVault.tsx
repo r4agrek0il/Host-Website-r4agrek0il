@@ -49,7 +49,7 @@ export default function CinemaVault({
     return videos.filter((video) => {
       const matchesCategory =
         activeCategory === 'all'
-          ? true
+          ? !video.isShort
           : activeCategory === 'neon-nights'
             ? Boolean(video.inNeonNights)
             : video.category === activeCategory;

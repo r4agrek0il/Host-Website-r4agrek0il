@@ -1,42 +1,38 @@
 import { useEffect, useState } from 'react';
 import {
   CHANNEL_VIDEOS,
-  FEATURED_VIDEO_ID,
   LAST_5_TRACKS,
-  isRecentlyPublished,
+  applyLatestDropNote,
+  applyNewBadges,
   mergeVideos,
+  pickLatestDrop,
   type ChannelVideo,
   type RssVideoEntry,
 } from '../data/channel';
 
 export interface ChannelVideosState {
+  /** Every release, newest first (full videos + Shorts). */
   videos: ChannelVideo[];
+  /** Newest 5 full videos (no Shorts), newest first. */
   tracks: ChannelVideo[];
+  /** Shorts only, newest first. */
   shorts: ChannelVideo[];
+  /** Newest full video by published date. */
+  latestDrop: ChannelVideo;
   isLive: boolean;
 }
 
-function featuredFirst(list: ChannelVideo[]): ChannelVideo[] {
-  const idx = list.findIndex((v) => v.videoId === FEATURED_VIDEO_ID);
-  if (idx <= 0) return list;
-  return [list[idx], ...list.slice(0, idx), ...list.slice(idx + 1)];
-}
-
 export function buildChannelState(rss: RssVideoEntry[] | null, now = Date.now()): ChannelVideosState {
-  if (!rss || rss.length === 0) {
-    return {
-      videos: CHANNEL_VIDEOS,
-      tracks: featuredFirst(LAST_5_TRACKS),
-      shorts: CHANNEL_VIDEOS.filter((v) => v.isShort),
-      isLive: false,
-    };
-  }
-  const videos = mergeVideos(rss, CHANNEL_VIDEOS).map((v) =>
-    isRecentlyPublished(v.publishedAt, now) ? { ...v, isNew: true } : v
-  );
-  const tracks = featuredFirst(videos.filter((v) => !v.isShort)).slice(0, 5);
+  const live = Boolean(rss && rss.length > 0);
+  const merged = live ? mergeVideos(rss as RssVideoEntry[], CHANNEL_VIDEOS) : CHANNEL_VIDEOS;
+  const latestId = pickLatestDrop(merged)?.videoId;
+  const videos = applyNewBadges(applyLatestDropNote(merged, latestId), now);
+  const full = videos.filter((v) => !v.isShort);
+  const tracks = live
+    ? full.slice(0, 5)
+    : LAST_5_TRACKS.map((t) => full.find((v) => v.videoId === t.videoId) ?? t);
   const shorts = videos.filter((v) => v.isShort);
-  return { videos, tracks, shorts, isLive: true };
+  return { videos, tracks, shorts, latestDrop: tracks[0] ?? full[0] ?? videos[0], isLive: live };
 }
 
 const FALLBACK = buildChannelState(null);

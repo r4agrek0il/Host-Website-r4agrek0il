@@ -56,7 +56,7 @@ export default function App() {
   const [bootComplete, setBootComplete] = useState(shouldSkipBoot);
 
   // Live YouTube uploads (RSS via /api/videos) merged with curated metadata
-  const { videos: channelVideos, tracks: deckTracks, shorts: liveShorts } = useChannelVideos();
+  const { videos: channelVideos, tracks: deckTracks, shorts: liveShorts, latestDrop } = useChannelVideos();
   const deckTracksRef = useRef(deckTracks);
 
   // Synced Audio Deck (Last 5 Tracks) + Synthwave Background Loop State
@@ -115,17 +115,23 @@ export default function App() {
     deckTracksRef.current = deckTracks;
     if (prevTracks === deckTracks) return;
     setCurrentTrackIndex((idx) => {
+      // Still on the (previous) latest drop: follow the new latest drop at slot 0.
+      if (idx === 0) return 0;
       const prevId = prevTracks[idx]?.videoId;
       const found = prevId ? deckTracks.findIndex((t) => t.videoId === prevId) : -1;
       if (found !== -1) return found;
       return Math.min(Math.max(idx, 0), deckTracks.length - 1);
     });
-    setActiveVaultVideo((prev) => channelVideos.find((v) => v.videoId === prev.videoId) ?? prev);
+    setActiveVaultVideo((prev) =>
+      prev.videoId === prevTracks[0]?.videoId
+        ? deckTracks[0] ?? prev
+        : channelVideos.find((v) => v.videoId === prev.videoId) ?? prev
+    );
   }, [deckTracks, channelVideos]);
 
   const currentDeckTrack = deckTracks[currentTrackIndex] ?? deckTracks[0];
   const marqueeTitles = useMemo(
-    () => channelVideos.filter((v) => v.isNew).slice(0, 4).map((v) => v.shortTitle),
+    () => channelVideos.filter((v) => v.isNew && !v.isShort).slice(0, 4).map((v) => v.shortTitle),
     [channelVideos]
   );
   const anyPlaybackActive = isDeckPlaying || isPlayingInline || modalVideo !== null;
@@ -231,6 +237,7 @@ export default function App() {
       <main className="relative z-10">
         <HeroStage
           currentDeckTrack={currentDeckTrack}
+          latestDrop={latestDrop}
           isDeckPlaying={isDeckPlaying}
           isPlaybackActive={anyPlaybackActive}
           isAudioMuted={isAudioMuted}

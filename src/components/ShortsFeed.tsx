@@ -40,23 +40,17 @@ const SHORTS_HIGHLIGHTS: ShortsSlot[] = [
   },
 ];
 
-const WAKE_THE_NIGHT_SHORT_ID = 'QIV-N_7nPcE';
-
-// Keep the Wake the Night short pinned, fill remaining slots with the latest live shorts,
-// then fall back to the curated highlight slots.
+// Newest Shorts first. The curated highlight slots (Wake the Night short pinned first)
+// are used only when there are no Shorts at all, or to fill remaining slots.
 function buildSlots(shorts: ChannelVideo[] | undefined): ShortsSlot[] {
   if (!shorts || shorts.length === 0) return SHORTS_HIGHLIGHTS;
-  const pinned = SHORTS_HIGHLIGHTS[0];
-  const live = shorts
-    .filter((v) => v.videoId !== WAKE_THE_NIGHT_SHORT_ID)
-    .slice(0, SHORTS_HIGHLIGHTS.length - 1)
-    .map<ShortsSlot>((v) => ({
-      video: v,
-      hook: v.shortTitle,
-      format: v.isNew ? 'New Vertical Drop' : '9:16 Vertical Drop',
-    }));
-  const slots = [pinned, ...live];
-  for (const fallback of SHORTS_HIGHLIGHTS.slice(1)) {
+  const slots = shorts.slice(0, SHORTS_HIGHLIGHTS.length).map<ShortsSlot>((v) => {
+    const curated = SHORTS_HIGHLIGHTS.find((h) => h.video.videoId === v.videoId);
+    return curated
+      ? { ...curated, video: v }
+      : { video: v, hook: v.shortTitle, format: v.isNew ? 'New Vertical Drop' : '9:16 Vertical Drop' };
+  });
+  for (const fallback of SHORTS_HIGHLIGHTS) {
     if (slots.length >= SHORTS_HIGHLIGHTS.length) break;
     if (!slots.some((s) => s.video.videoId === fallback.video.videoId)) slots.push(fallback);
   }

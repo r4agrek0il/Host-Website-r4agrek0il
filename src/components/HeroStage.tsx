@@ -25,6 +25,8 @@ import { nextSubscriberMilestone } from '../utils/telemetryPoller';
 
 interface HeroStageProps {
   currentDeckTrack: ChannelVideo;
+  /** Newest full video by published date ("Launch Latest Drop" target). */
+  latestDrop?: ChannelVideo;
   isDeckPlaying: boolean;
   isPlaybackActive?: boolean;
   isAudioMuted: boolean;
@@ -39,6 +41,7 @@ interface HeroStageProps {
 
 export default function HeroStage({
   currentDeckTrack,
+  latestDrop,
   isDeckPlaying,
   isPlaybackActive = false,
   isAudioMuted,
@@ -466,7 +469,7 @@ export default function HeroStage({
                 type="button"
                 onClick={() => {
                   cyberAudio.playUiPulse(820);
-                  onOpenCinemaModal(currentDeckTrack);
+                  onOpenCinemaModal(latestDrop ?? currentDeckTrack);
                 }}
                 className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[#FF7B00]/45 bg-[#FF7B00]/10 px-4 py-2.5 text-sm font-semibold text-[#FF7B00] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FF7B00]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
               >

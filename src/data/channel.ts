@@ -316,10 +316,17 @@ export function getYouTubeWatchUrl(videoId: string, isShort?: boolean): string {
 // Auto-sync: live YouTube RSS uploads merged with curated metadata
 // ---------------------------------------------------------------------------
 
-/** The promoted video ("What If I Don't?") — shown first in hero/deck when present. */
+/**
+ * Legacy promoted id. Kept for reference only — it no longer affects ordering.
+ * "Latest Drop" is always computed from published dates (see pickLatestDrop).
+ */
 export const FEATURED_VIDEO_ID = 'sm_sXx6Ek2E';
 
-export const NEW_BADGE_WINDOW_DAYS = 14;
+export const NEW_BADGE_WINDOW_DAYS = 7;
+/** Maximum NEW badges per list (full videos and Shorts are capped separately). */
+export const NEW_BADGE_MAX = 2;
+export const LATEST_DROP_NOTE = 'Latest Drop';
+export const NEUTRAL_RELEASE_NOTE = 'Official Release';
 
 export interface RssVideoEntry {
   videoId: string;
@@ -380,34 +387,87 @@ export function rssToChannelVideo(entry: RssVideoEntry, index: number): ChannelV
   };
 }
 
+function publishedMs(v: ChannelVideo): number | null {
+  if (!v.publishedAt) return null;
+  const t = Date.parse(v.publishedAt);
+  return Number.isFinite(t) ? t : null;
+}
+
 /**
- * Curated metadata wins for known ids (enriched with publishedAt/views from RSS);
- * uploads not in the curated list come first (newest first), then curated order.
+ * Curated metadata wins for known ids (enriched with publishedAt/views from RSS).
+ * Everything with a published date is sorted newest-first; curated items missing
+ * from the feed (older than the RSS window) follow in curated order.
+ * Display index: full videos and Shorts are numbered chronologically per list
+ * (oldest = 01), so existing numbers never shift when a new upload lands.
  */
 export function mergeVideos(rss: RssVideoEntry[], curated: ChannelVideo[]): ChannelVideo[] {
   const rssById = new Map<string, RssVideoEntry>();
   for (const e of rss) if (e?.videoId && !rssById.has(e.videoId)) rssById.set(e.videoId, e);
+  if (rssById.size === 0) return curated;
   const curatedIds = new Set(curated.map((v) => v.videoId));
 
-  const fresh = [...rssById.values()]
-    .filter((e) => !curatedIds.has(e.videoId))
-    .sort((a, b) => (Date.parse(b.published) || 0) - (Date.parse(a.published) || 0))
-    .map((e, i) => rssToChannelVideo(e, i));
-
+  const dated: ChannelVideo[] = [];
+  const undated: ChannelVideo[] = [];
   const seen = new Set<string>();
-  const out: ChannelVideo[] = [];
-  for (const v of fresh) {
-    if (seen.has(v.videoId)) continue;
-    seen.add(v.videoId);
-    out.push(v);
-  }
   for (const v of curated) {
     if (seen.has(v.videoId)) continue;
     seen.add(v.videoId);
     const live = rssById.get(v.videoId);
-    out.push(live ? { ...v, publishedAt: live.published || v.publishedAt, views: live.views ?? v.views } : v);
+    const merged = live
+      ? { ...v, publishedAt: live.published || v.publishedAt, views: live.views ?? v.views }
+      : v;
+    (publishedMs(merged) !== null ? dated : undated).push(merged);
   }
-  // Keep display ordinals sequential once new uploads are prepended.
-  if (fresh.length === 0) return out;
-  return out.map((v, i) => ({ ...v, index: String(i + 1).padStart(2, '0') }));
+  let i = 0;
+  for (const e of rssById.values()) {
+    if (curatedIds.has(e.videoId)) continue;
+    const v = rssToChannelVideo(e, i++);
+    (publishedMs(v) !== null ? dated : undated).push(v);
+  }
+  dated.sort((a, b) => (publishedMs(b) ?? 0) - (publishedMs(a) ?? 0));
+  const ordered = [...dated, ...undated];
+
+  const renumber = (list: ChannelVideo[]) => {
+    const n = list.length;
+    return new Map(list.map((v, idx) => [v.videoId, String(n - idx).padStart(2, '0')]));
+  };
+  const fullIdx = renumber(ordered.filter((v) => !v.isShort));
+  const shortIdx = renumber(ordered.filter((v) => v.isShort));
+  return ordered.map((v) => ({
+    ...v,
+    index: (v.isShort ? shortIdx : fullIdx).get(v.videoId) ?? v.index,
+  }));
+}
+
+/** Newest non-Short video in a newest-first list (falls back to the first item). */
+export function pickLatestDrop(videos: ChannelVideo[]): ChannelVideo | undefined {
+  return videos.find((v) => !v.isShort) ?? videos[0];
+}
+
+/** Only the actual newest full video carries the "Latest Drop" note. */
+export function applyLatestDropNote(videos: ChannelVideo[], latestId: string | undefined): ChannelVideo[] {
+  return videos.map((v) => {
+    if (v.videoId === latestId) return v.releaseNote === LATEST_DROP_NOTE ? v : { ...v, releaseNote: LATEST_DROP_NOTE };
+    if (v.releaseNote === LATEST_DROP_NOTE) return { ...v, releaseNote: NEUTRAL_RELEASE_NOTE };
+    return v;
+  });
+}
+
+/** NEW badge: within the window, newest first, at most `max` full videos and `max` Shorts. */
+export function applyNewBadges(
+  videos: ChannelVideo[],
+  now: number = Date.now(),
+  max: number = NEW_BADGE_MAX
+): ChannelVideo[] {
+  let full = 0;
+  let shorts = 0;
+  return videos.map((v) => {
+    const { isNew: _drop, ...rest } = v;
+    void _drop;
+    if (!isRecentlyPublished(v.publishedAt, now)) return rest;
+    if (v.isShort ? shorts >= max : full >= max) return rest;
+    if (v.isShort) shorts++;
+    else full++;
+    return { ...rest, isNew: true };
+  });
 }
