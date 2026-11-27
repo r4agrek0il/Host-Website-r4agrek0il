@@ -7,6 +7,7 @@ interface CloudflarePagesContext {
 
 interface TelemetryResult {
   ok: boolean;
+  stale?: boolean;
   source: 'youtube-api' | 'youtube-public' | 'unavailable';
   subscribers: number | null;
   totalViews: number | null;
@@ -170,7 +171,7 @@ declare const caches: CacheStorage & { default: Cache };
 
 const EDGE_FRESH_KEY = 'https://telemetry.internal/fresh';
 const EDGE_LAST_GOOD_KEY = 'https://telemetry.internal/last-good';
-const EDGE_FRESH_SECONDS = 300; // 5 minutes
+const EDGE_FRESH_SECONDS = 20; // keep counts near real-time
 const EDGE_LAST_GOOD_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 function edgeCache(): Cache | null {
@@ -184,7 +185,7 @@ function edgeCache(): Cache | null {
 function jsonResponse(result: TelemetryResult): Response {
   return Response.json(result, {
     status: 200,
-    headers: { 'Cache-Control': 'public, max-age=60' },
+    headers: { 'Cache-Control': 'public, max-age=10' },
   });
 }
 
@@ -229,7 +230,7 @@ export async function onRequestGet(context: CloudflarePagesContext): Promise<Res
   if (cache) {
     try {
       const lastGood = await cache.match(EDGE_LAST_GOOD_KEY);
-      if (lastGood) return jsonResponse((await lastGood.json()) as TelemetryResult);
+      if (lastGood) return jsonResponse({ ...((await lastGood.json()) as TelemetryResult), stale: true });
     } catch {
       // ignore
     }

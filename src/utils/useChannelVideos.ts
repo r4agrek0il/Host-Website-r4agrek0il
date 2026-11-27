@@ -34,7 +34,7 @@ export function buildChannelState(rss: RssVideoEntry[] | null, now = Date.now())
   const videos = mergeVideos(rss, CHANNEL_VIDEOS).map((v) =>
     isRecentlyPublished(v.publishedAt, now) ? { ...v, isNew: true } : v
   );
-  const tracks = featuredFirst(videos.filter((v) => !v.isShort));
+  const tracks = featuredFirst(videos.filter((v) => !v.isShort)).slice(0, 5);
   const shorts = videos.filter((v) => v.isShort);
   return { videos, tracks, shorts, isLive: true };
 }
