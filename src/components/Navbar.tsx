@@ -34,11 +34,11 @@ export default function Navbar({ isAudioMuted, onToggleMasterMute }: NavbarProps
         className="h-[2px] w-full bg-gradient-to-r from-[#00F0FF] via-[#FFB800] to-[#FF7B00]"
       />
 
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 sm:gap-8 px-4 sm:px-6 lg:px-8">
         {/* Zone 1: Single-line Brand wordmark */}
         <a
           href="#top"
-          className="font-display text-lg font-bold tracking-tight text-white whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF] rounded-sm"
+          className="font-display text-lg font-bold tracking-tight text-white whitespace-nowrap max-md:inline-flex max-md:min-h-10 max-md:items-center shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF] rounded-sm"
         >
           {CHANNEL_PROFILE.name}
         </a>
@@ -60,13 +60,13 @@ export default function Navbar({ isAudioMuted, onToggleMasterMute }: NavbarProps
         </nav>
 
         {/* Zone 3: Master Audio Mute Toggle + Subscribe CTA */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onToggleMasterMute}
             aria-label={isAudioMuted ? 'Unmute background audio' : 'Mute background audio'}
             aria-pressed={!isAudioMuted}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 font-mono text-xs font-medium text-slate-200 whitespace-nowrap shrink-0 transition-colors hover:border-[#00F0FF]/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+            className="inline-flex h-9 max-md:h-10 max-md:min-w-10 justify-center items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 font-mono text-xs font-medium text-slate-200 whitespace-nowrap shrink-0 transition-colors hover:border-[#00F0FF]/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
           >
             {isAudioMuted ? (
               <VolumeX className="h-3.5 w-3.5 text-[#FF7B00]" />
@@ -80,7 +80,7 @@ export default function Navbar({ isAudioMuted, onToggleMasterMute }: NavbarProps
             href={CHANNEL_PROFILE.urls.subscribe}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center justify-center rounded-lg bg-[#FF7B00] px-4 py-2 text-xs font-semibold text-[#04071A] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FFB800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+            className="inline-flex max-sm:min-h-[40px] max-sm:px-3 items-center justify-center rounded-lg bg-[#FF7B00] px-4 py-2 text-xs font-semibold text-[#04071A] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#FFB800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
           >
             Subscribe
           </a>

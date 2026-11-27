@@ -2,7 +2,6 @@ import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MotionConfig } from 'motion/react';
 import AudioDeck from './components/AudioDeck';
 import BootSequence from './components/BootSequence';
-import MobileSubscribePill from './components/MobileSubscribePill';
 import ChannelMarquee from './components/ChannelMarquee';
 import CinemaModal from './components/CinemaModal';
 import CinemaVault from './components/CinemaVault';
@@ -237,7 +236,6 @@ export default function App() {
       <CyberBackdrop isPlaying={anyPlaybackActive} />
 
       {!bootComplete && <BootSequence onComplete={handleBootComplete} />}
-      <MobileSubscribePill />
 
       <Navbar
         isAudioMuted={isAudioMuted}
@@ -298,7 +296,7 @@ export default function App() {
         <CommunityNexus />
       </main>
 
-      <div className="relative z-10">
+      <div className="relative z-10 max-md:pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <Footer />
       </div>
 

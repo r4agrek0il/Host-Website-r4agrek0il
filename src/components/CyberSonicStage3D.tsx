@@ -120,7 +120,7 @@ export default function CyberSonicStage3D({ isPlaying }: CyberSonicStage3DProps)
         <button
           type="button"
           onClick={() => setDockCollapsed((prev) => !prev)}
-          className="inline-flex min-h-[34px] items-center gap-1.5 rounded-t-xl border border-b-0 border-[#00F0FF]/30 bg-[rgba(4,7,26,0.94)] px-3.5 py-1 font-mono text-[11px] font-medium text-slate-200 transition-colors hover:text-[#00F0FF]"
+          className="inline-flex min-h-[34px] max-md:min-h-10 items-center gap-1.5 rounded-t-xl border border-b-0 border-[#00F0FF]/30 bg-[rgba(4,7,26,0.94)] px-3.5 py-1 font-mono text-[11px] font-medium text-slate-200 transition-colors hover:text-[#00F0FF]"
         >
           {dockCollapsed ? (
             <>

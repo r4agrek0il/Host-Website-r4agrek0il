@@ -326,7 +326,7 @@ export default function HeroStage({
               <button
                 type="button"
                 onClick={() => setBannerMode('mythic')}
-                className={`inline-flex min-h-[28px] items-center gap-1 rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold transition-colors ${
+                className={`inline-flex min-h-[28px] max-md:min-h-10 items-center gap-1 rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold transition-colors ${
                   bannerMode === 'mythic'
                     ? 'bg-[#00F0FF] text-[#04071A]'
                     : 'text-slate-300 hover:text-white'
@@ -338,7 +338,7 @@ export default function HeroStage({
               <button
                 type="button"
                 onClick={() => setBannerMode('original')}
-                className={`inline-flex min-h-[28px] items-center gap-1 rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold transition-colors ${
+                className={`inline-flex min-h-[28px] max-md:min-h-10 items-center gap-1 rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold transition-colors ${
                   bannerMode === 'original'
                     ? 'bg-[#FF7B00] text-[#04071A]'
                     : 'text-slate-300 hover:text-white'
@@ -634,7 +634,7 @@ export default function HeroStage({
               role="switch"
               aria-checked={liveMode}
               onClick={onToggleLiveMode}
-              className={`inline-flex min-h-[34px] items-center gap-2 rounded-lg border px-3 py-1 font-mono text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF] ${
+              className={`inline-flex min-h-[34px] max-md:min-h-10 items-center gap-2 rounded-lg border px-3 py-1 font-mono text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF] ${
                 liveMode
                   ? 'border-[#00F0FF]/60 bg-[#00F0FF]/15 text-[#00F0FF]'
                   : 'border-white/15 bg-[#04071A] text-slate-300 hover:text-white'
@@ -689,7 +689,7 @@ export default function HeroStage({
                     href={SUBSCRIBE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-3 block group"
+                    className="mt-3 block max-md:py-2 group"
                     aria-label={`Help me hit ${goal} subscribers: ${subs} of ${goal}`}
                   >
                     <div className="flex items-center justify-between font-mono text-[10px] text-slate-400 group-hover:text-[#FFB800]">

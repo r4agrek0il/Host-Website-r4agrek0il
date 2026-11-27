@@ -397,7 +397,7 @@ export default function CinemaVault({
                           cyberAudio.playUiPulse(720);
                           onOpenModal(video);
                         }}
-                        className="font-semibold text-[#00F0FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
+                        className="font-semibold max-md:inline-flex max-md:min-h-10 max-md:items-center text-[#00F0FF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00F0FF]"
                       >
                         Open Theater
                       </button>
@@ -406,7 +406,7 @@ export default function CinemaVault({
                         href={getYouTubeWatchUrl(video.videoId, video.isShort)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-medium text-slate-300 hover:text-[#FF7A00]"
+                        className="inline-flex max-md:min-h-10 items-center gap-1 font-medium text-slate-300 hover:text-[#FF7A00]"
                       >
                         <span>YouTube</span>
                         <ArrowUpRight className="h-3.5 w-3.5" />
@@ -416,7 +416,7 @@ export default function CinemaVault({
                         href={SUBSCRIBE_URL}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-semibold text-[#FF7A00] hover:underline"
+                        className="inline-flex max-md:min-h-10 items-center gap-1 font-semibold text-[#FF7A00] hover:underline"
                       >
                         Subscribe
                       </a>

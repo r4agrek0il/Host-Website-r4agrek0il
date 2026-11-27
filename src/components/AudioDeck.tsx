@@ -94,6 +94,31 @@ export default function AudioDeck({
   const [autoplayMutedHint, setAutoplayMutedHint] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
+  // Mobile-only: compact mini bar by default; persisted per session
+  const [mobileCollapsed, setMobileCollapsed] = useState(() => {
+    try {
+      return sessionStorage.getItem('deck-mobile-collapsed') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  // Mobile-only: muted hint pill shows briefly then hides (desktop keeps it)
+  const [hintMobileVisible, setHintMobileVisible] = useState(true);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('deck-mobile-collapsed', mobileCollapsed ? '1' : '0');
+    } catch {
+      // storage unavailable
+    }
+  }, [mobileCollapsed]);
+
+  useEffect(() => {
+    if (!autoplayMutedHint) return;
+    setHintMobileVisible(true);
+    const t = window.setTimeout(() => setHintMobileVisible(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [autoplayMutedHint]);
 
   const currentTrack = tracks[safeIndex] ?? tracks[0];
 
@@ -359,7 +384,7 @@ export default function AudioDeck({
   return (
     <aside
       aria-label="R4agRek0il Audio Deck"
-      className="fixed right-4 bottom-4 z-40 flex w-[calc(100vw-2rem)] max-w-[376px] flex-col items-end gap-2.5"
+      className="fixed right-4 bottom-4 max-md:right-2 max-md:bottom-[calc(0.5rem+env(safe-area-inset-bottom))] max-md:w-[calc(100vw-1rem)] z-40 flex w-[calc(100vw-2rem)] max-w-[376px] flex-col items-end gap-2.5"
     >
       {/* Muted Autoplay Helper Prompt */}
       {autoplayMutedHint && (
@@ -375,7 +400,7 @@ export default function AudioDeck({
             onMutedChange(false);
             setAutoplayMutedHint(false);
           }}
-          className="inline-flex min-h-[36px] items-center gap-2 rounded-full border border-[#00F0FF]/55 bg-[#03050a]/95 px-3.5 py-1.5 font-mono text-[11px] font-medium text-[#00F0FF] shadow-[0_0_24px_rgba(0,240,255,0.28)] backdrop-blur-md transition-colors hover:bg-[#00F0FF]/15"
+          className={`${hintMobileVisible ? 'inline-flex' : 'max-md:hidden inline-flex'} min-h-[36px] max-md:min-h-[40px] items-center gap-2 rounded-full border border-[#00F0FF]/55 bg-[#03050a]/95 px-3.5 py-1.5 font-mono text-[11px] font-medium text-[#00F0FF] shadow-[0_0_24px_rgba(0,240,255,0.28)] backdrop-blur-md transition-colors hover:bg-[#00F0FF]/15`}
         >
           <VolumeX className="h-3.5 w-3.5 text-[#FF7B00]" />
           <span>Sound Muted — Click anywhere to unmute</span>
@@ -384,7 +409,7 @@ export default function AudioDeck({
 
       {/* Last 5 Releases Switcher Drawer */}
       {drawerOpen && (
-        <div className="w-full overflow-hidden rounded-2xl border border-[#00F0FF]/30 bg-[#03050a]/95 shadow-2xl backdrop-blur-xl">
+        <div className={`${mobileCollapsed ? 'max-md:hidden ' : ''}w-full max-md:max-h-[50vh] max-md:overflow-y-auto overflow-hidden rounded-2xl border border-[#00F0FF]/30 bg-[#03050a]/95 shadow-2xl backdrop-blur-xl`}>
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <span className="font-mono text-xs font-semibold text-[#00F0FF]">
               Last 5 Releases
@@ -392,7 +417,7 @@ export default function AudioDeck({
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
-              className="text-xs text-slate-400 hover:text-white"
+              className="max-md:min-h-[40px] max-md:px-2 text-xs text-slate-400 hover:text-white"
             >
               Close
             </button>
@@ -457,8 +482,66 @@ export default function AudioDeck({
           <div ref={playerContainerRef} className="h-full w-full" />
         </div>
 
+        {/* Mobile mini bar (collapsed) */}
+        {mobileCollapsed && (
+          <div className="flex h-16 items-center gap-2 px-2.5 md:hidden">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/15 bg-[#03050a]">
+              {!avatarFailed ? (
+                <img
+                  src={CHANNEL_PROFILE.avatarImage}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  decoding="async"
+                  onError={() => setAvatarFailed(true)}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center font-display text-sm font-bold text-[#00F0FF]">
+                  4
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-display text-xs font-bold text-white">
+                {currentTrack.shortTitle}
+              </p>
+              <p className="flex items-center gap-1 truncate font-mono text-[11px] text-[#00F0FF] tabular-nums">
+                {isMuted && <VolumeX aria-label="Muted" className="h-3 w-3 shrink-0 text-[#FF7B00]" />}
+                <span className="truncate">
+                  {isMuted ? 'Muted · tap to unmute' : `Track ${safeIndex + 1}/${tracks.length}`}
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handlePlayPause}
+              aria-label={isPlaying ? 'Pause track' : 'Play track'}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#FF7B00] text-[#04071A]"
+            >
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4 fill-current" />}
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              aria-label="Next track"
+              className="inline-flex h-11 w-10 shrink-0 items-center justify-center rounded-lg text-slate-300"
+            >
+              <SkipForward className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileCollapsed(false)}
+              aria-label="Expand audio deck"
+              aria-expanded={false}
+              className="inline-flex h-11 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-300"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Header Strip: Track Info + Expand & Tracklist */}
-        <div className="flex items-center justify-between gap-3 p-3 pb-2">
+        <div className={`${mobileCollapsed ? 'max-md:hidden ' : ''}flex items-center justify-between gap-3 p-3 pb-2`}>
           <div className="flex min-w-0 items-center gap-3">
             <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-[#03050a]">
               {!avatarFailed ? (
@@ -492,10 +575,18 @@ export default function AudioDeck({
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
+              onClick={() => setMobileCollapsed(true)}
+              aria-label="Collapse audio deck"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-slate-300 md:hidden"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               onClick={() => setShowVideoStage((prev) => !prev)}
               aria-label={showVideoStage ? 'Collapse mini video' : 'Expand mini video'}
               title={showVideoStage ? 'Audio-only view' : 'Show video preview'}
-              className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+              className={`inline-flex h-9 w-9 max-md:h-10 items-center justify-center rounded-lg border transition-colors ${
                 showVideoStage
                   ? 'border-[#00F0FF]/50 bg-[#00F0FF]/15 text-[#00F0FF]'
                   : 'border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
@@ -509,7 +600,7 @@ export default function AudioDeck({
               onClick={() => onExpandCinema(currentTrack)}
               aria-label="Open in Cinema Modal"
               title="Open full Cinema Theater"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+              className="inline-flex h-9 w-9 max-md:h-10 items-center justify-center rounded-lg border border-white/10 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
             >
               <Maximize2 className="h-4 w-4" />
             </button>
@@ -517,13 +608,13 @@ export default function AudioDeck({
         </div>
 
         {/* Transport Controls + Volume + Last 5 Drawer Toggle */}
-        <div className="flex items-center justify-between gap-2 border-t border-white/10 px-3 py-2.5">
+        <div className={`${mobileCollapsed ? 'max-md:hidden ' : ''}flex items-center justify-between gap-2 border-t border-white/10 px-3 py-2.5`}>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={handlePrev}
               aria-label="Previous track"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+              className="inline-flex h-9 w-9 max-md:h-10 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
             >
               <SkipBack className="h-4 w-4" />
             </button>
@@ -532,7 +623,7 @@ export default function AudioDeck({
               type="button"
               onClick={handlePlayPause}
               aria-label={isPlaying ? 'Pause track' : 'Play track'}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#FF7B00] text-[#04071A] transition-colors hover:bg-[#FFB800]"
+              className="inline-flex h-9 w-9 max-md:h-10 items-center justify-center rounded-lg bg-[#FF7B00] text-[#04071A] transition-colors hover:bg-[#FFB800]"
             >
               {isPlaying ? (
                 <Pause className="h-4 w-4" />
@@ -545,7 +636,7 @@ export default function AudioDeck({
               type="button"
               onClick={handleNext}
               aria-label="Next track"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+              className="inline-flex h-9 w-9 max-md:h-10 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
             >
               <SkipForward className="h-4 w-4" />
             </button>
@@ -561,7 +652,7 @@ export default function AudioDeck({
                 setAutoplayMutedHint(false);
               }}
               aria-label={isMuted ? 'Unmute audio deck' : 'Mute audio deck'}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white"
+              className="inline-flex h-8 w-8 max-md:h-10 max-md:w-9 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white"
             >
               {isMuted ? (
                 <VolumeX className="h-4 w-4 text-[#FF7B00]" />
@@ -585,7 +676,7 @@ export default function AudioDeck({
             type="button"
             onClick={() => setDrawerOpen((prev) => !prev)}
             aria-expanded={drawerOpen}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 font-mono text-[11px] font-medium text-slate-200 whitespace-nowrap transition-colors hover:border-[#00F0FF]/50 hover:text-white"
+            className="inline-flex h-9 max-md:h-10 items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 font-mono text-[11px] font-medium text-slate-200 whitespace-nowrap transition-colors hover:border-[#00F0FF]/50 hover:text-white"
           >
             <ListMusic className="h-3.5 w-3.5 text-[#00F0FF]" />
             <span>5 Tracks</span>
