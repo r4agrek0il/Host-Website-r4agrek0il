@@ -24,6 +24,7 @@ const EngagementAnalytics = lazy(() => import('./components/EngagementAnalytics'
 import {
   getInitialSnapshot,
   pollChannelTelemetry,
+  TELEMETRY_POLL_INTERVAL_MS,
   type LiveChannelSnapshot,
 } from './utils/telemetryPoller';
 
@@ -95,7 +96,7 @@ export default function App() {
     void runPoll();
     const intervalId = window.setInterval(() => {
       void runPoll();
-    }, 3500);
+    }, TELEMETRY_POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;

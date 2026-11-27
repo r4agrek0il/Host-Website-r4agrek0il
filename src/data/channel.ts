@@ -72,7 +72,7 @@ export const CHANNEL_PROFILE = {
 export const CHANNEL_METRICS = [
   {
     label: 'Subscribers',
-    value: '204+',
+    value: '206+',
     detail: 'Growing community across YouTube & Instagram',
   },
   {

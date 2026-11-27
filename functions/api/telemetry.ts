@@ -166,12 +166,74 @@ async function fetchLiveYouTubeStats(apiKey?: string): Promise<TelemetryResult> 
   };
 }
 
-export async function onRequestGet(context: CloudflarePagesContext): Promise<Response> {
-  const result = await fetchLiveYouTubeStats(context.env.YOUTUBE_API_KEY);
+declare const caches: CacheStorage & { default: Cache };
+
+const EDGE_FRESH_KEY = 'https://telemetry.internal/fresh';
+const EDGE_LAST_GOOD_KEY = 'https://telemetry.internal/last-good';
+const EDGE_FRESH_SECONDS = 300; // 5 minutes
+const EDGE_LAST_GOOD_SECONDS = 60 * 60 * 24 * 30; // 30 days
+
+function edgeCache(): Cache | null {
+  try {
+    return typeof caches !== 'undefined' && caches.default ? caches.default : null;
+  } catch {
+    return null;
+  }
+}
+
+function jsonResponse(result: TelemetryResult): Response {
   return Response.json(result, {
     status: 200,
-    headers: {
-      'Cache-Control': 'no-store, max-age=0',
-    },
+    headers: { 'Cache-Control': 'public, max-age=60' },
   });
+}
+
+export async function onRequestGet(context: CloudflarePagesContext): Promise<Response> {
+  const cache = edgeCache();
+
+  if (cache) {
+    try {
+      const hit = await cache.match(EDGE_FRESH_KEY);
+      if (hit) return jsonResponse((await hit.json()) as TelemetryResult);
+    } catch {
+      // ignore cache errors
+    }
+  }
+
+  const result = await fetchLiveYouTubeStats(context.env.YOUTUBE_API_KEY);
+
+  if (result.ok) {
+    if (cache) {
+      const body = JSON.stringify(result);
+      const store = (key: string, ttl: number) =>
+        cache
+          .put(
+            key,
+            new Response(body, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': `public, max-age=${ttl}`,
+              },
+            })
+          )
+          .catch(() => undefined);
+      await Promise.all([
+        store(EDGE_FRESH_KEY, EDGE_FRESH_SECONDS),
+        store(EDGE_LAST_GOOD_KEY, EDGE_LAST_GOOD_SECONDS),
+      ]);
+    }
+    return jsonResponse(result);
+  }
+
+  // Live fetch failed: serve the last good result if we have one.
+  if (cache) {
+    try {
+      const lastGood = await cache.match(EDGE_LAST_GOOD_KEY);
+      if (lastGood) return jsonResponse((await lastGood.json()) as TelemetryResult);
+    } catch {
+      // ignore
+    }
+  }
+
+  return jsonResponse(result);
 }

@@ -17,8 +17,8 @@ interface TelemetryApiResponse {
   fetchedAt?: string;
 }
 
-const BASE_SUBSCRIBERS = 204;
-const BASE_TOTAL_VIEWS = 5480;
+const BASE_SUBSCRIBERS = 206;
+const BASE_TOTAL_VIEWS = 8128;
 const BASE_TODAY_VIEWS = 326;
 const BASE_TODAY_WATCH_HOURS = 15.6;
 
@@ -50,7 +50,7 @@ export async function pollChannelTelemetry(
         ...prev,
         deltaSubs: 0,
         deltaViews: 0,
-        lastUpdated: prev.isLiveSynced ? timestamp : 'Verified Baseline',
+        lastUpdated: prev.isLiveSynced ? timestamp : 'Last known',
       };
     }
 
@@ -60,7 +60,7 @@ export async function pollChannelTelemetry(
         ...prev,
         deltaSubs: 0,
         deltaViews: 0,
-        lastUpdated: prev.isLiveSynced ? timestamp : 'Verified Baseline',
+        lastUpdated: prev.isLiveSynced ? timestamp : 'Last known',
       };
     }
 
@@ -103,8 +103,24 @@ export async function pollChannelTelemetry(
       ...prev,
       deltaSubs: 0,
       deltaViews: 0,
-      lastUpdated: prev.isLiveSynced ? timestamp : 'Verified Baseline',
+      lastUpdated: prev.isLiveSynced ? timestamp : 'Last known',
     };
+  }
+}
+
+/** Minimum client poll interval; the edge caches telemetry for 5 minutes. */
+export const TELEMETRY_POLL_INTERVAL_MS = 60_000;
+
+/** Next subscriber milestone: 250, 500, 1000, 2500, 5000, 10000, ... */
+export function nextSubscriberMilestone(subs: number): number {
+  const steps = [2.5, 5, 10];
+  let base = 100;
+  for (;;) {
+    for (const m of steps) {
+      const target = base * m;
+      if (target > subs) return target;
+    }
+    base *= 10;
   }
 }
 

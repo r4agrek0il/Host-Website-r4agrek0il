@@ -21,6 +21,7 @@ import { cyberAudio } from '../utils/audioEngine';
 import type { LiveChannelSnapshot } from '../utils/telemetryPoller';
 import MythicLogoSVG from './MythicLogoSVG';
 import { SUBSCRIBE_URL } from '../data/channel';
+import { nextSubscriberMilestone } from '../utils/telemetryPoller';
 
 interface HeroStageProps {
   currentDeckTrack: ChannelVideo;
@@ -664,7 +665,9 @@ export default function HeroStage({
                 )}
               </div>
               <p className="mt-1.5 font-display text-2xl font-bold text-white tabular-nums">
-                {liveMode ? liveSnapshot.subscribers.toLocaleString() : '204+'}
+                {liveMode
+                  ? liveSnapshot.subscribers.toLocaleString()
+                  : `${(liveSnapshot.subscribers || 206).toLocaleString()}+`}
                 {liveMode && liveSnapshot.deltaSubs > 0 && (
                   <span className="ml-2 font-mono text-xs font-medium text-[#00F0FF]">
                     +{liveSnapshot.deltaSubs}
@@ -674,6 +677,28 @@ export default function HeroStage({
               <p className="mt-1 text-xs leading-relaxed text-slate-400">
                 Growing community across YouTube &amp; Instagram
               </p>
+              {(() => {
+                const subs = liveSnapshot.subscribers || 206;
+                const goal = nextSubscriberMilestone(subs);
+                const pct = Math.min(100, Math.round((subs / goal) * 100));
+                return (
+                  <a
+                    href={SUBSCRIBE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 block group"
+                    aria-label={`Help me hit ${goal} subscribers: ${subs} of ${goal}`}
+                  >
+                    <div className="flex items-center justify-between font-mono text-[10px] text-slate-400 group-hover:text-[#FFB800]">
+                      <span>Help me hit {goal.toLocaleString()} subscribers</span>
+                      <span className="tabular-nums">{pct}%</span>
+                    </div>
+                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={goal} aria-valuenow={subs}>
+                      <div className="h-full rounded-full bg-gradient-to-r from-[#00F0FF] to-[#FFB800] transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </a>
+                );
+              })()}
             </div>
 
             <div className="bg-[#04071A]/95 p-5 sm:p-6">
